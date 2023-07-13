@@ -37,26 +37,57 @@ public:
     }
 };
 
-class TransferFunc{
-    
-}
+class TransferFunc
+{
+public:
+    TransferFunc() = default;
+    virtual float getActivation(float x) const = 0; //? >=1 unoverriden Makes Transfer Func abstract class i.e. virtual ~= abstract
+    virtual float getDerivative(float x) const = 0;
+};
+
+class RELUTransfer : public TransferFunc
+{
+    float getActivation(float input) const
+    {
+        if (input <= 0)
+            return 0;
+        return input;
+    }
+
+    float getDerivative(float input) const
+    {
+        if (input <= 0)
+            return 0;
+        return 1;
+    }
+};
 
 class Perceptron
 {
+public:
+    enum Type
+    {
+        INPUT,
+        HIDDEN,
+        OUTPUT
+    };
+
+private:
     // Members are private by default
-    float (*transfer_apply)(float);
+    const TransferFunc &transferApply;
     std::vector<Edge> inEdges{{}};
-    bool isOutput{};
     float targetValue; // Only applies if the neuron is output neuron
+    Type type{HIDDEN};
 
 public:
-    Perceptron(float (*transfer_apply)(float),
-               std::vector<Edge> &inEdges, bool isOutput=false) //& to ensure we get reference to original not copy
-        : transfer_apply{transfer_apply}, inEdges{inEdges}, isOutput{isOutput}
+    // https://stackoverflow.com/questions/11422070/c-abstract-class-parameter-error-workaround
+    Perceptron(const TransferFunc &transferfunc,            //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
+               std::vector<Edge> &inEdges, Type type) //& to ensure we get reference to original not copy
+        : transferApply{transferfunc}, inEdges{inEdges}, type{type}
     {
     }
 
-    Perceptron(float (*transfer_apply)(float)) : transfer_apply{transfer_apply} {};
+    Perceptron(const TransferFunc &transferfunc) : transferApply{transferfunc} {};
 
     void setInEdges(std::vector<Edge> &inEdges)
     {
@@ -64,29 +95,35 @@ public:
     }
 
     // Oi = f(net i) for neuron i i.e. total activation
-    float get_output()
+    float getOutput()
     {
         float total{0};
         for (Edge e : inEdges)
         {
-            total += transfer_apply(e.getWeightedActivation());
+            //! You cannot call the function of an object with const keyword (i.e. immutable) unless that function is const too!
+            // Syntax -> add const at end
+            total += transferApply.getActivation(e.getWeightedActivation());
         }
         return total;
     }
 
     // Varies depending on is output -> maybe have subclass?
-    // 
-    float get_delta(){
-        // output -> deriv(x)
-        if (isOutput) return 
-        else
+    // Could also use strategy pattern as well, but let's just do enum hack for now for simplicity
+    float get_delta()
+    {
+        // output -> (target - actual)*deriv(net input to current)
+        if (this->type == OUTPUT)
+        {
+            return (targetValue - getOutput()) * transferApply.getDerivative(getOutput());
+        }
+        // hidden -> (sum over all next layer neurons())
     }
 
     /**
      * Performs back prop update using next layer deltas
-    */
+     */
     float update_weight()
-    {   
+    {
         // Get next layer deltas
         // Compute own update constant
         // Update self
@@ -106,19 +143,6 @@ class PerceptronInputLayer : Perceptron
     }
 };
 
-float relu_activation(float input)
-{
-    if (input <= 0)
-        return 0;
-    return input;
-}
-
-float relu_activation_deriv(float input){
-    if (input <= 0)
-        return 0;
-    return 1;
-}
-
 class NeuralNetwork
 {
     std::vector<std::vector<Perceptron>> layers;
@@ -137,21 +161,23 @@ public:
 
                 // Create neuron linked to previous layer's neurons
                 std::vector<Edge> previousLayerEdges{};
-                Perceptron neuron{relu_activation};
+                RELUTransfer transferfunc = RELUTransfer{};
+                Perceptron neuron{transferfunc};
                 for (Perceptron p : previousLayer)
                 {
                     previousLayerEdges.push_back(Edge{1, p, neuron});
                 }
-                layer.push_back(Perceptron{relu_activation, previousLayerEdges});
+                // ! anonymous objects i.e. Perceptron{RELUTransfer{}} the relutransfer object is temp and does not have a reference! so must assign to var before passing it
+                // ! cannot bind tmp rvalue to non-const lvalue reference (but can for const lvalue reference as we do here)
+                layer.push_back(Perceptron{RELUTransfer{}, previousLayerEdges, Perceptron::Type::HIDDEN});
             }
             layers.push_back(layer);
-            previousLayer = layer;
+            previousLayer = layer; // copies layer's values into previous layer (not reference moving).
         }
     }
 
     void train(int **inputData, int **outputData, int samples, int inputDim, int outputDim)
     {
-        
     }
 
     int *predict(int *inputData)

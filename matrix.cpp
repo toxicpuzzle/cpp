@@ -3,7 +3,9 @@
 #include <cassert>
 
 class Matrix{
-    
+    // TODO: Create copy constructor properly so that new matrix has duplciate stdvecs i.e. Matrix(const Matrix& other); override the default version.
+    // https://www.youtube.com/watch?v=ehMg6zvXuMY&list=PLlrATfBNZ98dudnM48yfGUldqGD0S4FFb&index=89
+    // Create move constructor as well so you don't need to do Matrix{{},{},{}} and the r-value on call is linked to the l-value w/o copying through function calls.
     std::vector<std::vector<int>> matrix{};
     int rows{};
     int cols{};
