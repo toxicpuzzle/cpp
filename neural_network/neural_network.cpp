@@ -37,12 +37,17 @@ public:
     }
 };
 
+class TransferFunc{
+    
+}
+
 class Perceptron
 {
     // Members are private by default
     float (*transfer_apply)(float);
     std::vector<Edge> inEdges{{}};
     bool isOutput{};
+    float targetValue; // Only applies if the neuron is output neuron
 
 public:
     Perceptron(float (*transfer_apply)(float),
@@ -58,6 +63,7 @@ public:
         this->inEdges = inEdges;
     }
 
+    // Oi = f(net i) for neuron i i.e. total activation
     float get_output()
     {
         float total{0};
@@ -68,9 +74,23 @@ public:
         return total;
     }
 
+    // Varies depending on is output -> maybe have subclass?
+    // 
+    float get_delta(){
+        // output -> deriv(x)
+        if (isOutput) return 
+        else
+    }
+
+    /**
+     * Performs back prop update using next layer deltas
+    */
     float update_weight()
-    {
-        for (Edge e :)
+    {   
+        // Get next layer deltas
+        // Compute own update constant
+        // Update self
+        // Propogate own delta backwards
     }
 };
 
@@ -113,7 +133,7 @@ public:
             std::vector<Perceptron> layer{};
             for (int i = 0; i < layerDim; i++)
             {
-                //? cdefault - copy is passed, & in PARAM, not in ARGS makes it so that reference is provided
+                //? cppdefault - copy is passed, & in PARAM, not in ARGS makes it so that reference is provided
 
                 // Create neuron linked to previous layer's neurons
                 std::vector<Edge> previousLayerEdges{};
@@ -124,6 +144,7 @@ public:
                 }
                 layer.push_back(Perceptron{relu_activation, previousLayerEdges});
             }
+            layers.push_back(layer);
             previousLayer = layer;
         }
     }
