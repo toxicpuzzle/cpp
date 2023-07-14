@@ -21,22 +21,38 @@ class OwnArray{
 public:
     T array[N]; // N is known at compile time
 
-    OwnArray(int count, ...){
+    // Old cpp way of getting elements using count
+    // OwnArray(int count, ...){
 
-        for (int i = 0; i < N; i++){
+    //     for (int i = 0; i < N; i++){
+    //         array[i] = 0;
+    //     }
+
+    //     std::cout << "The count is " << count << "\n";
+    //     // Initialise ellipses list
+    //     std::va_list list;
+    //     va_start(list, count);
+
+    //     for (int i = 0; i < count; i++){
+    //         array[i] = va_arg(list, T); // pulls the next element off the list
+    //     }
+
+    //     va_end(list);
+    // }
+
+    // Modern cpp way of doing things - better than ellipsis
+    OwnArray(std::initializer_list<T> list){
+        for (int i =0; i < N; i++){
             array[i] = 0;
         }
 
-        std::cout << "The count is " << count << "\n";
-        // Initialise ellipses list
-        std::va_list list;
-        va_start(list, count);
-
-        for (int i = 0; i < count; i++){
-            array[i] = va_arg(list, T); // pulls the next element off the list
+        for (T element: list){
+            std::cout << element << "\n";
         }
 
-        va_end(list);
+        for (long unsigned int i = 0; i < list.size(); i++){
+            array[i] = *(list.begin() + i); // pulls the next element off the list
+        }
     }
 
     T& operator[](int i){
@@ -65,6 +81,8 @@ int main(){
 
     // avoid ellipses whenever as compiler forgets typechecking!
     OwnArray<int, 10> arr{5,1,2,3,4,5}; //! Need to provide num of args in count, 
+
+    std::cout << "Array elements are\n";
     arr[0] = 100;
 
     for (int i =0; i < 10; i++){
