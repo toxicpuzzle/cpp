@@ -89,6 +89,10 @@ public:
         }
     }
 
+    std::vector<int> operator[](int row){
+        return this->matrix[row];
+    }
+
 };
 
 int main(){
