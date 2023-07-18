@@ -285,35 +285,111 @@ public:
         }
         return result / loss.size();
     }
+
+    //! first paramter of instance method (member function) is calling (this) object, so either overload as friend or free function
+    // operator<< is either overloaded as friend function (wi.e. does not take the member method), or outside of class (recommeded);
+    friend std::ostream& operator<< (std::ostream& os, const NeuralNetwork& n){
+        os << "I'm a neural network!\n";
+        return os;
+    }
 };
+
+/**
+ * Printable concept that requires type of a to be s.t. if we do os << a it is compilable
+*/
+template <typename T>
+concept Printable = requires(std::ostream &os, T a) {
+    os << a;
+};
+
+/**
+ * Template to auto write funtions (like java generic method) for printing out arrays for dfferent types
+ */
+template <Printable T>
+void printVector(const std::vector<T> &vector)
+{
+    std::cout << "[";
+    for (T elem : vector)
+    {
+        std::cout << elem << ", ";
+    }
+    std::cout << "]";
+}
 
 // std::vector<std::vector<float>
 struct Data
 {
     std::vector<float> inputData;
     std::vector<float> outputData;
+
+    friend std::ostream& operator<<(std::ostream& os, Data& d){
+        os << "Input: ";
+        printVector(d.inputData);
+        os << "output: ";
+        printVector(d.outputData);
+        return os;
+    }
 };
 
-Data readData()
+std::vector<float> getLineAsVec(std::string line)
 {
+    int pos{0};
+    line = line + " ";
+    std::string splitDelim = " ";
+    std::vector<float> vec{};
+    while (true)
+    {
+        int nextDelim = line.find(splitDelim, pos);
+
+        // .size() includes null byte
+        if (nextDelim == std::string::npos || pos == line.size() - 1)
+            break;
+
+        std::string value = line.substr(pos, nextDelim);
+        vec.push_back(std::stof(value));
+        pos = nextDelim + 1;
+    }
+    return vec;
+}
+
+std::vector<Data> readData()
+{
+    std::vector<Data> results{};
     Data d{};
     std::ifstream file("xor.txt");
     std::string line;
+    bool isInput{true};
     if (file.is_open())
     {
         while (std::getline(file, line))
         {
-            std::cout << line << "\n";
+            std::vector<float> result = getLineAsVec(line);
+            // std::vector<float> &toInsert = isInput ? d.inputData : d.outputData;
+            // toInsert.insert(toInsert.end(), result.begin(), result.end());
+            // printVector(toInsert);
+            if (!isInput){
+                d.outputData = result;
+                results.push_back(d);
+            } else {
+                d.inputData = result;
+            }
+            isInput = !isInput;
         }
         file.close();
     }
-    return d;
+    return results;
 }
+
 
 int main()
 {
-    // NeuralNetwork n{std::vector{3, 3, 1}, 3};
-    // readData();
+    NeuralNetwork n{std::vector{3, 3, 1}, 3};
+    std::vector<Data> d = readData();
+
+    printVector(d);
+    printVector(d);
+    std::vector<NeuralNetwork> v = std::vector{n};
+    printVector(v); // print vector works once you've overloaded the << method to work with &ostream.
 
     std::cout << "hello world\n";
     return 0;
