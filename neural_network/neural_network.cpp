@@ -3,234 +3,14 @@
 #include <tuple>
 #include <limits>
 #include <unordered_map>
+#include <ranges>
+#include <iostream>
+#include <fstream>
+#include "edge.h"
+#include "perceptron.h"
+#include "transfer.h"
 
-class Perceptron;
-class Edge;
-
-class Edge
-{
-    float weight{};
-    Perceptron &from;
-    Perceptron &to;
-
-public:
-    // Cannot fail to have default constructor - i.e. no params, or params all have default values
-
-    Edge(float weight, Perceptron &from, Perceptron &to) : weight{weight},
-                                                           from{from},
-                                                           to{to} {};
-
-    // Edge(float weight){
-    //     this(weight); // Cannot do direct delegation of constructors like in java
-    // }
-
-    // Use default constructor to reset to initial state
-    // void reset(){
-    //     *this = Edge();
-    // }
-
-    Perceptron &getFrom() const
-    {
-        return from;
-    }
-
-    Perceptron &getTo() const
-    {
-        return to;
-    }
-
-    int getWeightedActivation() const
-    {
-        return from.getOutput() * weight;
-    }
-
-    int getWeight() const
-    {
-        return weight;
-    }
-
-    void setWeight(float weight)
-    {
-        this->weight = weight;
-    }
-
-    /**
-     * Performs back prop update using next layer deltas
-     */
-    float updateWeight()
-    {
-        float weightChange = this->from.getLearningRate() * this->to.getDelta() * this->from.getOutput();
-        this->weight = this->weight + weightChange;
-
-        // Get next layer deltas
-        // Compute own update constant
-        // Update self
-        // Propogate own delta backwards (for efficiency)
-    }
-};
-
-class TransferFunc
-{
-public:
-    TransferFunc() = default;
-    virtual float getActivation(float x) const = 0; //? >=1 unoverriden Makes Transfer Func abstract class i.e. virtual ~= abstract
-    virtual float getDerivative(float x) const = 0;
-};
-
-class RELUTransfer : public TransferFunc
-{
-    float getActivation(float input) const
-    {
-        if (input <= 0)
-            return 0;
-        return input;
-    }
-
-    float getDerivative(float input) const
-    {
-        if (input <= 0)
-            return 0;
-        return 1;
-    }
-};
-
-class Perceptron
-{
-public:
-    enum Type
-    {
-        INPUT,
-        HIDDEN,
-        OUTPUT
-    };
-
-private:
-    // Members are private by default
-public:
-    const TransferFunc &transferApply;
-    std::vector<Edge> inEdges{{}}; // need edges as single neuron could be connected via many weights to other neurons
-    std::vector<Edge> outEdges{{}};
-    float targetValue; // Only applies if the neuron is input or output neuron
-    float bias{};
-    float learningRate{};
-    bool resultComputed{false}; // internal flag to determine if neuron has been updated on the current iteration. OR use hashmap?
-    static int globalId;
-    int id;
-    // Cache for output, delta, nd net? or maybe just make perceptron a dataclass and shift layer/layer work to neural network class so iteration can be used?
-    // So each neuron just stores what else it is connected to e.g. for CNN purposes we can modify this?
-    //! Why implementation to choose?
-    // Go with iteration for now, but keep the existing functions in perceptron
-    // forward pass - update outputs layer by layer to get final target output
-    // backward pass - compute delta for last layer, then update weights in prev, delta in penult e.t.c.
-    Type type{HIDDEN};
-
-public:
-    // https://stackoverflow.com/questions/11422070/c-abstract-class-parameter-error-workaround
-    Perceptron(const TransferFunc &transferfunc,                          //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
-               std::vector<Edge> &inEdges, float learningRate, Type type) //& to ensure we get reference to original not copy
-        : transferApply{transferfunc}, inEdges{inEdges}, learningRate{learningRate}, type{type}
-    {
-        this->id = globalId++;
-    }
-
-    Perceptron(const TransferFunc &transferfunc) : transferApply{transferfunc} {};
-
-    void setInEdges(std::vector<Edge> &inEdges)
-    {
-        this->inEdges = inEdges;
-    }
-
-    // Returns net weight input of neurons: includes bias
-    float getNet() const
-    {
-        float total{0};
-        for (Edge e : inEdges)
-        {
-            //! You cannot call the function of an object with const keyword (i.e. immutable) unless that function is const too!
-            // Syntax -> add const at end
-            total += e.getWeightedActivation();
-        }
-        return total + this->bias;
-    }
-
-    // Oi = f(net i) for neuron i i.e. total activation
-    float getOutput() const
-    {
-        if (this->type == INPUT)
-            return this->targetValue; // i.e. input neurons never get incorrect target values;
-        return this->transferApply.getActivation(this->getNet());
-    }
-
-    // Varies depending on is output -> maybe have subclass?
-    // Could also use strategy pattern as well, but let's just do enum hack for now for simplicity
-    float getDelta() const
-    {
-        // output -> (target - actual)*deriv(net input to current)
-        if (this->type == OUTPUT)
-        {
-            return (targetValue - getOutput()) * transferApply.getDerivative(getOutput());
-            // hidden -> (sum over all next layer neurons())
-        }
-        else
-        {
-            int result{};
-            for (Edge e : outEdges)
-            {
-                result += e.getWeight() + e.getTo().getDelta();
-            }
-            result = result * transferApply.getDerivative(this->getNet());
-        }
-    }
-
-    // inline ensures we can avoid extra call stack layer
-    inline float getLearningRate() const
-    {
-        return this->learningRate;
-    }
-
-    void updateBias()
-    {
-        this->bias = this->bias - learningRate * this->getDelta();
-    }
-
-    float updateTargetVal(float target)
-    {
-        this->targetValue = target;
-    }
-
-    std::vector<Edge> &getInEdges()
-    {
-        return this->inEdges;
-    }
-
-    std::vector<Edge> &getOutEdges()
-    {
-        return this->inEdges;
-    }
-
-    bool operator==(Perceptron &other)
-    {
-        return this->id == other.id;
-    }
-
-    int getId() const
-    {
-        return this->id;
-    }
-};
-
-int Perceptron::globalId = 0;
-
-// Specialisation of the std::hash template i.e. overrides parent implementation of hash specifically for perceptrons
-template <>
-struct std::hash<Perceptron>
-{
-    std::size_t operator()(Perceptron const &s) const noexcept
-    {
-        auto getIntHash = std::hash<int>{};
-        return getIntHash(s.getId()); // or use boost::hash_combine (see Discussion) https://en.cppreference.com/w/Talk:cpp/utility/hash
-    }
-};
+int Edge::globalId = 0;
 
 class PerceptronInputLayer : public Perceptron
 {
@@ -252,6 +32,7 @@ class NeuralNetwork
         float delta;
         float net;
         Result(float delta, float net) : delta{delta}, net{net} {};
+        Result() = default;
     };
 
     std::vector<std::vector<Perceptron>> layers;
@@ -275,7 +56,7 @@ public:
                 Perceptron neuron{transferfunc};
                 for (Perceptron p : previousLayer)
                 {
-                    previousLayerEdges.push_back(Edge{1, p, neuron});
+                    previousLayerEdges.push_back(Edge{1.0, p, neuron});
                 }
                 // ! anonymous objects i.e. Perceptron{RELUTransfer{}} the relutransfer object is temp and does not have a reference! so must assign to var before passing it
                 // ! cannot bind tmp rvalue to non-const lvalue reference (but can for const lvalue reference as we do here)
@@ -294,13 +75,13 @@ public:
         for (int i = 0; i < layers[0].size(); i++)
         {
             lastLayerOutputs[layers[0][i]] = inputData[i];
-            results[layers[0][i]] = Result{0, inputData[i]};
+            results[layers[0][i]] = Result{0.0, inputData[i]};
         }
 
         std::unordered_map<Perceptron, float> currLayerOutputs{};
         for (int i = 1; i < layers.size(); i++)
         {
-            int result = 0;
+            float result = 0.0;
             for (int j = 0; j < layers[i].size(); j++)
             {
                 std::vector<Edge> &edges = layers[i][j].getInEdges();
@@ -309,7 +90,7 @@ public:
                     result += e.getWeight() * lastLayerOutputs[e.getFrom()];
                 }
                 currLayerOutputs[layers[i][j]] = result;
-                results[layers[i][j]] = Result{0, result};
+                results[layers[i][j]] = Result{0.0, result};
             }
             lastLayerOutputs = currLayerOutputs;
             currLayerOutputs.clear();
@@ -320,15 +101,14 @@ public:
         return currLayerOutputs;
     }
 
-    // Trains neural network on single example for exactly one iteration
-    void trainSingle(std::vector<float> inputData, std::vector<float> outputData)
+    // Updates the deltas for every neuron using single inputData/OutputData pari
+    void updateDeltas(std::vector<float> inputData, std::vector<float> outputData)
     {
-        // Update deltas for all neurons
         auto outputLayerResult = forwardPass(inputData);
         int layerFromRight = 0;
         for (std::vector<Perceptron> &layer : layers)
         {
-            if (layerFromRight = layers.size() - 1)
+            if (layerFromRight == layers.size() - 1)
                 break; // input layer does not have in edges
 
             int nodeNumInLayer = 0;
@@ -344,7 +124,7 @@ public:
                     {
                         // NB: This assumes that the loss function for the output layer just takes one input (else you need to MSE over errors);
                         // For batch training - you need MSE, i.e. do feedforward for all input-target pairs, calcualte 1/M * 1/2 (sum(target - actual)^2) which diffs to 1/M(sum(target-actual)) i.e. just the mean for this current calculation
-                        results[curr].delta = curr.transferApply.getDerivative(netForFrom) * (outputData[nodeNumInLayer] - fromActivation);
+                        results[curr].delta = curr.transferApply.getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par.getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
                     }
                     else
                     {
@@ -361,6 +141,112 @@ public:
             }
             layerFromRight++;
         }
+    }
+
+    std::unordered_map<Edge, float> getWeightUpdate(std::vector<float> inputData, std::vector<float> outputData)
+    {
+        std::unordered_map<Edge, float> weightChanges{};
+        for (std::vector<Perceptron> &layer : layers)
+        {
+            for (Perceptron &curr : layer)
+            {
+                for (Edge par : curr.getInEdges())
+                {
+                    float fromOutput = par.getFrom().transferApply.getActivation(results[par.getFrom()].net);
+                    float fromDelta = results[par.getFrom()].delta;
+                    float learningRate = par.getFrom().getLearningRate();
+                    float weightChange = learningRate * fromOutput * fromDelta;
+                    weightChanges[par] = weightChange;
+                }
+            }
+        }
+        return weightChanges;
+    }
+
+    // Gets weight change for neural network neural network on single example for exactly one iteration
+    /**
+     * Used for SGD i.e. trains one example at a time (better for large datasets where taking one batch step can be very long)
+     *
+     */
+    void trainSingle(std::vector<float> inputData, std::vector<float> outputData)
+    {
+        // Update deltas for all neurons
+        updateDeltas(inputData, outputData);
+
+        // Update weights based on deltas
+        std::unordered_map<Edge, float> changes = getWeightUpdate(inputData, outputData);
+        for (std::vector<Perceptron> &layer : layers)
+        {
+            for (Perceptron &curr : layer)
+            {
+                for (Edge &par : curr.getInEdges())
+                {
+                    float weightChange = changes[par];
+                    par.setWeight(par.getWeight() + weightChange);
+                }
+            }
+        }
+    }
+
+    // Returns the mean loss for every perceptron for n data points.
+private:
+    std::unordered_map<Perceptron, float>
+    getMeanLoss(std::vector<std::vector<float>> inputData, std::vector<std::vector<float>> outputData)
+    {
+        auto results = forwardPass(inputData[0]);
+        std::unordered_map<Perceptron, float> returnVal{};
+        for (int i = 0; i < inputData.size(); ++i)
+        {
+            auto passResults = forwardPass(inputData[i]);
+            for (int j = 0; j < layers[layers.size() - 1].size(); j++)
+            {
+                Perceptron key = layers[layers.size() - 1][i];
+                returnVal[key] += passResults[key];
+            }
+        }
+        // Average out the loss using structured binding.
+        for (auto &[key, value] : returnVal)
+        {
+            returnVal[key] = returnVal[key] / outputData.size();
+        }
+        return returnVal;
+    }
+
+public:
+    // void trainSingle(std::vector<std::vector<int>> inputData, ){
+    //     for (int i = 0; i < inputData.size(); ++i){
+    //         trainSingle()
+    //     }
+    // }
+    /**
+     * Performs weight update after feedforward has been done for all input/output data pairs
+     * but weights are still accumulated with each inputData sample and then averaged for update.
+     * https://stats.stackexchange.com/questions/436802/neural-network-batch-training
+     * We take the average of the gradients of all the training examples and then use that
+     * mean gradient to update our parameters. So that’s just one step of gradient descent in one epoch.
+     * https://towardsdatascience.com/batch-mini-batch-stochastic-gradient-descent-7a62ecba642a
+     */
+    void trainBatch(std::vector<std::vector<float>> inputData, std::vector<std::vector<float>> outputData)
+    {
+        // Update deltas for all neurons
+        std::unordered_map<Edge, float> totalChanges{};
+        for (int i = 0; i < inputData.size(); i++)
+        {
+            std::vector<float> input = inputData[i];
+            std::vector<float> output = outputData[i];
+
+            updateDeltas(input, output);
+            std::unordered_map<Edge, float> changes = getWeightUpdate(input, output);
+            for (auto [edge, wc] : changes)
+            {
+                totalChanges[edge] += wc;
+            }
+        }
+
+        for (auto [edge, wc] : totalChanges)
+        {
+            totalChanges[edge] = wc / (inputData.size());
+        }
 
         // Update weights based on deltas
         for (std::vector<Perceptron> &layer : layers)
@@ -369,51 +255,67 @@ public:
             {
                 for (Edge &par : curr.getInEdges())
                 {
-                    float fromOutput = par.getFrom().transferApply.getActivation(results[par.getFrom()].net);
-                    float fromDelta = results[par.getFrom()].delta;
-                    float learningRate = par.getFrom().getLearningRate();
-                    float weightChange = learningRate * fromOutput * fromDelta;
+                    float weightChange = totalChanges[par];
                     par.setWeight(par.getWeight() + weightChange);
                 }
             }
         }
     }
 
-    // Returns the mean loss for every perceptron for n data points.
-    float getMeanLoss(std::vector<std::vector<float>> inputData, std::vector<std::vector<float>> outputData){
-        auto results = forwardPass(inputData[0]);
-        std::unordered_map<Perceptron, float> returnVal{};
-        for (int i = 0; i < inputData.size(); ++i){
-            auto passResults = forwardPass(inputData[i]);
-            for (int j = 0; j < layers[layers.size()-1].size(); j++){
-                Perceptron key = layers[layers.size() - 1][i];
-                returnVal[key] += passResults[key];
-            }
-        }
-        // Average out the loss using structured binding.
-        for (auto& [key, value]: returnVal){
-            returnVal[key] = returnVal[key] / outputData.size();
-        }
-    }
-
-    // void trainSingle(std::vector<std::vector<int>> inputData, ){
-    //     for (int i = 0; i < inputData.size(); ++i){
-    //         trainSingle()
-    //     }
-    // }
-
-    void trainBatch(std::vector<std::vector<int>> inputData, std::vector<std::vector<int>> outputData)
+    /**
+     * Train SGD - trains the NN using SGD method i.e. weight adj done per training sample
+     */
+    float trainSGD(std::vector<std::vector<float>> inputData, std::vector<std::vector<float>> outputData)
     {
         // Use recursion to calculate?
+        for (int i = 0; i < inputData.size(); i++)
+        {
+            trainSingle(inputData[i], outputData[i]);
+        }
+        return 0;
     }
 
-    int *predict(int *inputData)
+    float predict(std::vector<std::vector<float>> inputData, std::vector<std::vector<float>> outputData)
     {
+        auto loss = getMeanLoss(inputData, outputData);
+        float result = 0;
+        for (auto a : loss)
+        {
+            result += a.second;
+        }
+        return result / loss.size();
     }
 };
 
+// std::vector<std::vector<float>
+struct Data
+{
+    std::vector<float> inputData;
+    std::vector<float> outputData;
+};
+
+Data readData()
+{
+    Data d{};
+    std::ifstream file("xor.txt");
+    std::string line;
+    if (file.is_open())
+    {
+        while (std::getline(file, line))
+        {
+            std::cout << line << "\n";
+        }
+        file.close();
+    }
+    return d;
+}
+
 int main()
 {
+    // NeuralNetwork n{std::vector{3, 3, 1}, 3};
+    // readData();
+
+    std::cout << "hello world\n";
     return 0;
 }
 

@@ -1,32 +1,53 @@
-#include "neural_network.h"
-class Edge
+#include "edge.h"
+#include "perceptron.h"
+
+Edge::Edge(float weight, Perceptron &from, Perceptron &to) : weight{weight}, from{from}, to{to} {}
+
+Perceptron &Edge::getFrom() const
 {
-    float weight{};
-    Perceptron from;
-    Perceptron to;
+    return from;
+}
 
-public:
-    // Cannot fail to have default constructor - i.e. no params, or params all have default values
+Perceptron &Edge::getTo() const
+{
+    return to;
+}
 
-    Edge(float weight, Perceptron &from, Perceptron &to) : weight{weight},
-                                                           from{from},
-                                                           to{to} {};
+int Edge::getWeightedActivation() const
+{
+    return from.getOutput() * weight;
+}
 
-    // Edge(float weight){
-    //     this(weight); // Cannot do direct delegation of constructors like in java
-    // }
+int Edge::getWeight() const
+{
+    return weight;
+}
 
-    // Use default constructor to reset to initial state
-    // void reset(){
-    //     *this = Edge();
-    // }
+void Edge::setWeight(float weight)
+{
+    this->weight = weight;
+}
 
-    void update_weight(int *toLayerErrors)
-    {
-    }
+float Edge::updateWeight()
+{
+    float weightChange = this->from.getLearningRate() * this->to.getDelta() * this->from.getOutput();
+    this->weight = this->weight + weightChange;
+    return 0.0;
+}
 
-    int getWeightedActivation()
-    {
-        return from.get_output() * weight;
-    }
-};
+int Edge::getId() const
+{
+    return id;
+}
+
+bool operator==(const Edge first, const Edge second)
+{
+    return first.getId() == second.getId();
+}
+
+Edge &Edge::operator=(const Edge &edge)
+{
+    weight = edge.weight;
+    id = edge.id;
+    return *this;
+}
