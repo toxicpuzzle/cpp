@@ -12,6 +12,7 @@
 class Edge;
 class TransferFunc;
 
+
 class Perceptron
 {
 public:
@@ -23,9 +24,11 @@ public:
     };
 
 public:
+
+    using Edgeptr = std::shared_ptr<Edge>;
     const TransferFunc &transferApply;   // if reference i.e. const pointer to non-const data, cannot use default constructor, must do member list initialisation or do inline here? and also override assignment(move operator)
-    std::vector<Edge> inEdges{{}}; // need edges as single neuron could be connected via many weights to other neurons
-    std::vector<Edge> outEdges{{}};
+    std::vector<Edgeptr> inEdges{{}}; // need edges as single neuron could be connected via many weights to other neurons
+    std::vector<Edgeptr> outEdges{{}};
     float targetValue; // Only applies if the neuron is input or output neuron
     float bias{};
     float learningRate{};
@@ -43,11 +46,14 @@ public:
 public:
     // https://stackoverflow.com/questions/11422070/c-abstract-class-parameter-error-workaround
     Perceptron(const TransferFunc &transferfunc,                                 //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
-               std::vector<Edge> &inEdges, float learningRate, Type type); //& to ensure we get reference to original not copy
+               std::vector<Edgeptr> &inEdges, std::vector<Edgeptr> &outEdges, float learningRate, Type type); //& to ensure we get reference to original not copy
 
     Perceptron(const TransferFunc &transferfunc);
 
-    void setInEdges(std::vector<Edge> &inEdges);
+    //! Must be a copy of ptrs because if vector is declared inside constructor then it could get deallocated
+    void setInEdges(std::vector<Edgeptr> inEdges);
+
+    void setOutEdges(std::vector<Edgeptr> inEdges);
 
     float getNet() const;
 
@@ -61,9 +67,9 @@ public:
 
     void updateTargetVal(float target);
 
-    std::vector<Edge> &getInEdges();
+    std::vector<Edgeptr> getInEdges();
 
-    std::vector<Edge> &getOutEdges();
+    std::vector<Edgeptr> getOutEdges();
 
     bool operator==(Perceptron &other);
 

@@ -6,11 +6,12 @@
 #include <ranges>
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include "edge.h"
 #include "perceptron.h"
 #include "transfer.h"
 
-int Edge::globalId = 0;
+// int Perceptron::globalId = 0;
 
 class PerceptronInputLayer : public Perceptron
 {
@@ -37,34 +38,137 @@ class NeuralNetwork
 
     std::vector<std::vector<Perceptron>> layers;
     std::unordered_map<Perceptron, Result> results;
+    std::unordered_map<int, Perceptron*> idToPerceptron;
 
 public:
     NeuralNetwork(std::vector<int> layerDims, float learningRate) : layers{}
     {
-        //! You still need to include the header decl for std datastructs
-        std::vector<Perceptron> previousLayer{};
-        for (int layerDim : layerDims)
-        {
-            std::vector<Perceptron> layer{};
-            for (int i = 0; i < layerDim; i++)
-            {
-                //? cppdefault - copy is passed, & in PARAM, not in ARGS makes it so that reference is provided
 
-                // Create neuron linked to previous layer's neurons
-                std::vector<Edge> previousLayerEdges{};
-                RELUTransfer transferfunc = RELUTransfer{};
-                Perceptron neuron{transferfunc};
-                for (Perceptron p : previousLayer)
-                {
-                    previousLayerEdges.push_back(Edge{1.0, p, neuron});
-                }
-                // ! anonymous objects i.e. Perceptron{RELUTransfer{}} the relutransfer object is temp and does not have a reference! so must assign to var before passing it
-                // ! cannot bind tmp rvalue to non-const lvalue reference (but can for const lvalue reference as we do here)
-                layer.push_back(Perceptron{RELUTransfer{}, previousLayerEdges, learningRate, Perceptron::Type::HIDDEN});
+        // New rewrite
+        std::unordered_map<Perceptron, std::vector<std::shared_ptr<Edge>>> toEdges{};
+        std::unordered_map<Perceptron, std::vector<std::shared_ptr<Edge>>> inEdges{};
+
+        // Construct raw neurons
+        for (int layerDim : layerDims){
+            std::vector<Perceptron> layer{};
+            for (int i =0 ; i < layerDim; ++i){
+                Perceptron toInsert = Perceptron{RELUTransfer{}}; //! segfault from calling activation func? because RELU Transfer si alloc on stack, but perceptron takes its reference.
+                layer.push_back(toInsert);
+                toEdges[toInsert] = std::vector<std::shared_ptr<Edge>>{};
+                inEdges[toInsert] = std::vector<std::shared_ptr<Edge>>{};
             }
             layers.push_back(layer);
-            previousLayer = layer; // copies layer's values into previous layer (not reference moving).
         }
+        
+        // Construct edges
+
+        // Construct adj list then put edges in at once (don't care about efficiency)
+        std::vector<Perceptron*> previousLayer{};
+        std::vector<std::shared_ptr<Edge>> prevToCurrEdges{};
+        for (auto& layer : layers){
+            // Out Edges - from prev to current layer;
+            for (auto& neuron: layer){
+                prevToCurrEdges.clear();
+                for (Perceptron* prev: previousLayer){
+                    std::shared_ptr<Edge> edge{new Edge{1, *prev, neuron}};
+
+                    //? Creates two shared pointers to the edge so if
+                    //? both neurons dealloc -> edge dealloc
+                    toEdges[*prev].push_back(edge);
+                    inEdges[neuron].push_back(edge);
+                }
+            }
+
+            // Current becomes previous layer
+            //? previousLayer = layer won't work, as that'd copy the perceptrons
+            previousLayer.clear();
+            for (auto& neuron: layer){
+                previousLayer.push_back(&neuron);
+            }
+        }
+
+        for (auto& layer : layers){
+            for (auto& neuron: layer){
+                neuron.setInEdges(inEdges[neuron]);
+                neuron.setOutEdges(toEdges[neuron]);
+            }
+        }
+
+        std::cout << "debug point";
+
+
+
+
+        // Currently the neurons would be on the stack, and the edge would be heap
+        // idToPerceptron 
+
+        // // // Construct raw neurons
+        // // std::vector<std::vector<Perceptron>> layers;
+        // // for (int layerDim : layerDims){
+        // //     std::vector<Perceptron> layer{};
+        // //     for (int i =0 ; i < layerDim; ++i){
+        // //         layer.push_back(Perceptron{RELUTransfer{}});
+        // //     }
+        // //     layers.push_back(layer);
+        // // }
+
+        // //! TODO: include in and out edges for constructor
+        // //! TODO: Fix stack allocation issue - e.g. layer are stack vars, but you are pushing it to a variable that will last longer than lifetime of constructor (undefined behavioru)
+        //     // solution: use smart pointers to allocate neuron layer on the heap.
+
+        // //! You still need to include the header decl for std datastructs
+        // std::vector<Perceptron*> previousLayer{};
+        // std::vector<std::shared_ptr<Edge>> previousLayerEdges{}; // Need SP as edges are allocated via SP in NN
+        // int layerNum{0};
+        // for (int layerDim : layerDims)
+        // {   
+        //     // std::shared_ptr<std::vector<Perceptron>> layer = std::make_shared<std::vector<Perceptron>>();
+        //     std::vector<Perceptron> layer{};
+        //     // Construct inEdges for curent layer
+        //     for (int i = 0; i < layerDim; i++)
+        //     {
+        //         //? cppdefault - copy is passed, & in PARAM, not in ARGS makes it so that reference is provided
+        //         // Create neuron linked to previous layer's neurons
+        //         previousLayerEdges = std::vector<std::shared_ptr<Edge>>{}; //! needed as inEdges is & to previousLayerEdges
+        //         RELUTransfer transferfunc = RELUTransfer{};
+        //         Perceptron neuron{transferfunc};
+        //         for (Perceptron* p : previousLayer)
+        //         {
+        //             //! use p* &p to avoid creating a copy from previous layer (reference needed for linking)
+        //             std::shared_ptr<Edge> prevToCurr{new Edge{1.0, *p, neuron}}; //! neuron of curr must be refer to the actual neruon
+        //             // std::unique_ptr<Edge> prevToCurr{new Edge{1.0, *p, neuron}}; -- cannot use copy assignment operator (used by vector push back).
+        //             previousLayerEdges.push_back(prevToCurr); //? Copy is fine as we making a copy to the pointer.
+        //         }
+        //         neuron.setInEdges(previousLayerEdges);
+        //         neuron.learningRate = learningRate;
+        //         neuron.type = Perceptron::Type::HIDDEN;
+        //         layer.push_back(neuron);
+
+        //         // ! anonymous objects i.e. Perceptron{RELUTransfer{}} the relutransfer object is temp and does not have a reference! so must assign to var before passing it
+        //         // ! cannot bind tmp rvalue to non-const lvalue reference (but can for const lvalue reference as we do here)
+        //         // layer.push_back(Perceptron{RELUTransfer{}, previousLayerEdges, learningRate, Perceptron::Type::HIDDEN});
+        //     }
+
+        //     // Link previous layer to current layer
+        //     if (layerNum >= 1)
+        //     {
+        //         for (Perceptron& prev : layers[layerNum - 1])
+        //         {
+        //             prev.setOutEdges(layer[0].getInEdges()); 
+        //         }
+        //     }
+
+        //     layers.push_back(layer); // copies layer's values into layers (distinct from value in previous layer)
+        //     // previousLayer = layer; // copies layer's values into previous layer (not reference moving).
+
+        //     // Constructor pointer to previous layer (i.e. make sure it points to the right member)
+        //     for (Perceptron& p: layers[layers.size()-1]){
+        //         previousLayer.push_back(&p);
+        //     }
+
+        //     layerNum++;
+        // }
+        // std::cout << "debug point";
     }
 
     // Update the outputs of each layer using iteration (i.e. don't use recursion as that is slower)
@@ -84,10 +188,10 @@ public:
             float result = 0.0;
             for (int j = 0; j < layers[i].size(); j++)
             {
-                std::vector<Edge> &edges = layers[i][j].getInEdges();
-                for (Edge e : edges)
+                std::vector<std::shared_ptr<Edge>> edges = layers[i][j].getInEdges();
+                for (auto e : edges)
                 {
-                    result += e.getWeight() * lastLayerOutputs[e.getFrom()];
+                    result += e->getWeight() * lastLayerOutputs[e->getFrom()];
                 }
                 currLayerOutputs[layers[i][j]] = result;
                 results[layers[i][j]] = Result{0.0, result};
@@ -115,24 +219,25 @@ public:
             for (Perceptron &curr : layer)
             {
                 float netForFrom = 0;
-                for (Edge &par : curr.getInEdges())
+                for (auto par : curr.getInEdges())
                 {
-                    float parActivation = par.getFrom().transferApply.getActivation(results[par.getFrom()].net);
+                    float fromNet = results[par->getFrom()].net;
+                    float parActivation = par->getFrom().transferApply.getActivation(fromNet);
                     float fromActivation = curr.transferApply.getActivation(results[curr].net);
-                    netForFrom += par.getWeight() * parActivation;
+                    netForFrom += par->getWeight() * parActivation;
                     if (layerFromRight == 0)
                     {
                         // NB: This assumes that the loss function for the output layer just takes one input (else you need to MSE over errors);
                         // For batch training - you need MSE, i.e. do feedforward for all input-target pairs, calcualte 1/M * 1/2 (sum(target - actual)^2) which diffs to 1/M(sum(target-actual)) i.e. just the mean for this current calculation
-                        results[curr].delta = curr.transferApply.getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par.getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
+                        results[curr].delta = curr.transferApply.getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par->getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
                     }
                     else
                     {
                         // Calculate weighted activation
                         float weightedDelta{};
-                        for (Edge out : curr.getOutEdges())
+                        for (auto out : curr.getOutEdges())
                         {
-                            weightedDelta += out.getWeight() * results[out.getTo()].delta;
+                            weightedDelta += out->getWeight() * results[out->getTo()].delta;
                         }
                         results[curr].delta = curr.transferApply.getDerivative(netForFrom) * weightedDelta;
                     }
@@ -150,13 +255,13 @@ public:
         {
             for (Perceptron &curr : layer)
             {
-                for (Edge par : curr.getInEdges())
+                for (auto par : curr.getInEdges())
                 {
-                    float fromOutput = par.getFrom().transferApply.getActivation(results[par.getFrom()].net);
-                    float fromDelta = results[par.getFrom()].delta;
-                    float learningRate = par.getFrom().getLearningRate();
+                    float fromOutput = par->getFrom().transferApply.getActivation(results[par->getFrom()].net);
+                    float fromDelta = results[par->getFrom()].delta;
+                    float learningRate = par->getFrom().getLearningRate();
                     float weightChange = learningRate * fromOutput * fromDelta;
-                    weightChanges[par] = weightChange;
+                    weightChanges[*par] = weightChange;
                 }
             }
         }
@@ -179,10 +284,10 @@ public:
         {
             for (Perceptron &curr : layer)
             {
-                for (Edge &par : curr.getInEdges())
+                for (auto par : curr.getInEdges())
                 {
-                    float weightChange = changes[par];
-                    par.setWeight(par.getWeight() + weightChange);
+                    float weightChange = changes[*par];
+                    par->setWeight(par->getWeight() + weightChange);
                 }
             }
         }
@@ -253,10 +358,10 @@ public:
         {
             for (Perceptron &curr : layer)
             {
-                for (Edge &par : curr.getInEdges())
+                for (auto par : curr.getInEdges())
                 {
-                    float weightChange = totalChanges[par];
-                    par.setWeight(par.getWeight() + weightChange);
+                    float weightChange = totalChanges[*par];
+                    par->setWeight(par->getWeight() + weightChange);
                 }
             }
         }
@@ -288,7 +393,8 @@ public:
 
     //! first paramter of instance method (member function) is calling (this) object, so either overload as friend or free function
     // operator<< is either overloaded as friend function (wi.e. does not take the member method), or outside of class (recommeded);
-    friend std::ostream& operator<< (std::ostream& os, const NeuralNetwork& n){
+    friend std::ostream &operator<<(std::ostream &os, const NeuralNetwork &n)
+    {
         os << "I'm a neural network!\n";
         return os;
     }
@@ -296,7 +402,7 @@ public:
 
 /**
  * Printable concept that requires type of a to be s.t. if we do os << a it is compilable
-*/
+ */
 template <typename T>
 concept Printable = requires(std::ostream &os, T a) {
     os << a;
@@ -322,7 +428,8 @@ struct Data
     std::vector<float> inputData;
     std::vector<float> outputData;
 
-    friend std::ostream& operator<<(std::ostream& os, Data& d){
+    friend std::ostream &operator<<(std::ostream &os, Data &d)
+    {
         os << "Input: ";
         printVector(d.inputData);
         os << "output: ";
@@ -367,10 +474,13 @@ std::vector<Data> readData()
             // std::vector<float> &toInsert = isInput ? d.inputData : d.outputData;
             // toInsert.insert(toInsert.end(), result.begin(), result.end());
             // printVector(toInsert);
-            if (!isInput){
+            if (!isInput)
+            {
                 d.outputData = result;
                 results.push_back(d);
-            } else {
+            }
+            else
+            {
                 d.inputData = result;
             }
             isInput = !isInput;
@@ -380,17 +490,26 @@ std::vector<Data> readData()
     return results;
 }
 
-
 int main()
 {
     NeuralNetwork n{std::vector{3, 3, 1}, 3};
     std::vector<Data> d = readData();
 
     printVector(d);
-    printVector(d);
-    std::vector<NeuralNetwork> v = std::vector{n};
-    printVector(v); // print vector works once you've overloaded the << method to work with &ostream.
+    // std::vector<NeuralNetwork> v = std::vector{n};
+    // printVector(v); // print vector works once you've overloaded the << method to work with &ostream.
 
+    std::vector<std::vector<float>> input{};
+    std::vector<std::vector<float>> output{};
+    for (Data ds : d)
+    {
+        input.push_back(ds.inputData);
+        output.push_back(ds.outputData);
+    }
+    std::cout << "finished vectorising\n";
+
+    n.trainSGD(input, output);
+    std::cout << n.predict(input, output) << "\n";
     std::cout << "hello world\n";
     return 0;
 }

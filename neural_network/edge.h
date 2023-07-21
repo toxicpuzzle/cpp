@@ -2,6 +2,7 @@
 #define EDGE_H
 
 #include <functional>
+#include <memory>
 
 // Use forward declaration instead of header to avoid circular dependencies
 class Perceptron;
@@ -9,8 +10,8 @@ class Perceptron;
 class Edge
 {
     float weight{};
-    Perceptron &from;
-    Perceptron &to;
+    Perceptron& from;
+    Perceptron& to;
     static int globalId;
     int id;
 

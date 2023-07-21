@@ -1,7 +1,9 @@
 #include "edge.h"
 #include "perceptron.h"
 
-Edge::Edge(float weight, Perceptron &from, Perceptron &to) : weight{weight}, from{from}, to{to} {}
+Edge::Edge(float weight, Perceptron &from, Perceptron &to) : weight{weight}, from{from}, to{to} {
+    this->id = globalId++;
+}
 
 Perceptron &Edge::getFrom() const
 {
@@ -51,3 +53,4 @@ Edge &Edge::operator=(const Edge &edge)
     id = edge.id;
     return *this;
 }
+int Edge::globalId = 0;
