@@ -26,7 +26,7 @@ public:
 public:
 
     using Edgeptr = std::shared_ptr<Edge>;
-    const TransferFunc &transferApply;   // if reference i.e. const pointer to non-const data, cannot use default constructor, must do member list initialisation or do inline here? and also override assignment(move operator)
+    const std::shared_ptr<TransferFunc> transferApply;   // if reference i.e. const pointer to non-const data, cannot use default constructor, must do member list initialisation or do inline here? and also override assignment(move operator)
     std::vector<Edgeptr> inEdges{{}}; // need edges as single neuron could be connected via many weights to other neurons
     std::vector<Edgeptr> outEdges{{}};
     float targetValue; // Only applies if the neuron is input or output neuron
@@ -45,10 +45,10 @@ public:
 
 public:
     // https://stackoverflow.com/questions/11422070/c-abstract-class-parameter-error-workaround
-    Perceptron(const TransferFunc &transferfunc,                                 //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
+    Perceptron(const std::shared_ptr<TransferFunc> transferfunc,                                 //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
                std::vector<Edgeptr> &inEdges, std::vector<Edgeptr> &outEdges, float learningRate, Type type); //& to ensure we get reference to original not copy
 
-    Perceptron(const TransferFunc &transferfunc);
+    Perceptron(const std::shared_ptr<TransferFunc> transferfunc);
 
     //! Must be a copy of ptrs because if vector is declared inside constructor then it could get deallocated
     void setInEdges(std::vector<Edgeptr> inEdges);
@@ -76,6 +76,12 @@ public:
     int getId() const;
 
     Perceptron &operator=(const Perceptron &other);
+
+    friend std::ostream &operator<<(std::ostream &os, const Perceptron &d)
+    {
+        os << d.id;
+        return os;
+    }
 
 };
 

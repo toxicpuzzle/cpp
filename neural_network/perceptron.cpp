@@ -6,14 +6,15 @@
 
 
 // https://stackoverflow.com/questions/11422070/c-abstract-class-parameter-error-workaround
-Perceptron::Perceptron(const TransferFunc &transferfunc,                                                       //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
-                       std::vector<std::shared_ptr<Edge>> &inEdges, std::vector<std::shared_ptr<Edge>> &outEdges, float learningRate, Type type) //& to ensure we get reference to original not copy
+Perceptron::Perceptron(const std::shared_ptr<TransferFunc> transferfunc,                                                       //! You can only pass abstract class by reference, not by value because by value creates copy of instance of base class, and abstract classes cannot be directly instantiated
+                       std::vector<std::shared_ptr<Edge>> &inEdges, 
+                       std::vector<std::shared_ptr<Edge>> &outEdges, float learningRate, Type type) //& to ensure we get reference to original not copy
     : transferApply{transferfunc}, inEdges{inEdges}, outEdges{outEdges}, learningRate{learningRate}, type{type}
 {
     this->id = globalId++;
 }
 
-Perceptron::Perceptron(const TransferFunc &transferfunc) : transferApply{transferfunc} {
+Perceptron::Perceptron(const std::shared_ptr<TransferFunc> transferfunc) : transferApply{transferfunc} {
     this->id = globalId++;
 };
 
@@ -45,7 +46,7 @@ float Perceptron::getOutput() const
 {
     if (this->type == INPUT)
         return this->targetValue; // i.e. input neurons never get incorrect target values;
-    return this->transferApply.getActivation(this->getNet());
+    return this->transferApply->getActivation(this->getNet());
 }
 
 // Varies depending on is output -> maybe have subclass?
@@ -55,7 +56,7 @@ float Perceptron::getDelta() const
     // output -> (target - actual)*deriv(net input to current)
     if (this->type == OUTPUT)
     {
-        return (targetValue - getOutput()) * transferApply.getDerivative(getOutput());
+        return (targetValue - getOutput()) * transferApply->getDerivative(getOutput());
         // hidden -> (sum over all next layer neurons())
     }
     else
@@ -65,7 +66,7 @@ float Perceptron::getDelta() const
         {
             result += e->getWeight() + e->getTo().getDelta();
         }
-        result = result * transferApply.getDerivative(this->getNet());
+        result = result * transferApply->getDerivative(this->getNet());
         return result;
     }
 }

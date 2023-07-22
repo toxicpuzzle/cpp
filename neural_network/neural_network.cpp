@@ -10,6 +10,7 @@
 #include "edge.h"
 #include "perceptron.h"
 #include "transfer.h"
+#include "own_templates.h"
 
 // int Perceptron::globalId = 0;
 
@@ -34,6 +35,11 @@ class NeuralNetwork
         float net;
         Result(float delta, float net) : delta{delta}, net{net} {};
         Result() = default;
+
+        friend std::ostream& operator<<(std::ostream& os, const Result& result){
+            os << result.net;
+            return os;
+        }
     };
 
     std::vector<std::vector<Perceptron>> layers;
@@ -52,7 +58,8 @@ public:
         for (int layerDim : layerDims){
             std::vector<Perceptron> layer{};
             for (int i =0 ; i < layerDim; ++i){
-                Perceptron toInsert = Perceptron{RELUTransfer{}}; //! segfault from calling activation func? because RELU Transfer si alloc on stack, but perceptron takes its reference.
+                std::shared_ptr<TransferFunc> tmp{new RELUTransfer{}};
+                Perceptron toInsert = Perceptron{tmp}; //! segfault from calling activation func? because RELU Transfer si alloc on stack, but perceptron takes its reference.
                 layer.push_back(toInsert);
                 toEdges[toInsert] = std::vector<std::shared_ptr<Edge>>{};
                 inEdges[toInsert] = std::vector<std::shared_ptr<Edge>>{};
@@ -174,7 +181,7 @@ public:
     // Update the outputs of each layer using iteration (i.e. don't use recursion as that is slower)
     std::unordered_map<Perceptron, float> forwardPass(std::vector<float> inputData)
     {
-        // std::vector<int> lastLayerOutputs{static_cast<int>(inputData.size()), 0};
+        // Compute the first layer's outputs (literally just inputs)
         std::unordered_map<Perceptron, float> lastLayerOutputs{};
         for (int i = 0; i < layers[0].size(); i++)
         {
@@ -182,6 +189,7 @@ public:
             results[layers[0][i]] = Result{0.0, inputData[i]};
         }
 
+        // Compute the second layer's outputs
         std::unordered_map<Perceptron, float> currLayerOutputs{};
         for (int i = 1; i < layers.size(); i++)
         {
@@ -200,12 +208,12 @@ public:
             currLayerOutputs.clear();
         }
 
-        // CurrLayerOutputs at this point should be the outputs of the final layer
+        // lastLayerOuptuts at this point should be the outputs of the final layer
         // Compute average error
-        return currLayerOutputs;
+        return lastLayerOutputs;
     }
 
-    // Updates the deltas for every neuron using single inputData/OutputData pari
+    // Updates the deltas for the next training session for every neuron using single inputData/OutputData pari
     void updateDeltas(std::vector<float> inputData, std::vector<float> outputData)
     {
         auto outputLayerResult = forwardPass(inputData);
@@ -222,14 +230,14 @@ public:
                 for (auto par : curr.getInEdges())
                 {
                     float fromNet = results[par->getFrom()].net;
-                    float parActivation = par->getFrom().transferApply.getActivation(fromNet);
-                    float fromActivation = curr.transferApply.getActivation(results[curr].net);
+                    float parActivation = par->getFrom().transferApply->getActivation(fromNet);
+                    float fromActivation = curr.transferApply->getActivation(results[curr].net);
                     netForFrom += par->getWeight() * parActivation;
                     if (layerFromRight == 0)
                     {
                         // NB: This assumes that the loss function for the output layer just takes one input (else you need to MSE over errors);
                         // For batch training - you need MSE, i.e. do feedforward for all input-target pairs, calcualte 1/M * 1/2 (sum(target - actual)^2) which diffs to 1/M(sum(target-actual)) i.e. just the mean for this current calculation
-                        results[curr].delta = curr.transferApply.getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par->getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
+                        results[curr].delta = curr.transferApply->getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par->getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
                     }
                     else
                     {
@@ -239,7 +247,7 @@ public:
                         {
                             weightedDelta += out->getWeight() * results[out->getTo()].delta;
                         }
-                        results[curr].delta = curr.transferApply.getDerivative(netForFrom) * weightedDelta;
+                        results[curr].delta = curr.transferApply->getDerivative(netForFrom) * weightedDelta;
                     }
                 }
                 nodeNumInLayer++;
@@ -257,7 +265,7 @@ public:
             {
                 for (auto par : curr.getInEdges())
                 {
-                    float fromOutput = par->getFrom().transferApply.getActivation(results[par->getFrom()].net);
+                    float fromOutput = par->getFrom().transferApply->getActivation(results[par->getFrom()].net);
                     float fromDelta = results[par->getFrom()].delta;
                     float learningRate = par->getFrom().getLearningRate();
                     float weightChange = learningRate * fromOutput * fromDelta;
@@ -298,15 +306,18 @@ private:
     std::unordered_map<Perceptron, float>
     getMeanLoss(std::vector<std::vector<float>> inputData, std::vector<std::vector<float>> outputData)
     {
-        auto results = forwardPass(inputData[0]);
+        // auto results = forwardPass(inputData[0]);
         std::unordered_map<Perceptron, float> returnVal{};
         for (int i = 0; i < inputData.size(); ++i)
         {
             auto passResults = forwardPass(inputData[i]);
+            printHashMap(results);
+            printHashMap(passResults);
+            // Adds the last layer outputs to returnVal for current inputData pass
             for (int j = 0; j < layers[layers.size() - 1].size(); j++)
             {
-                Perceptron key = layers[layers.size() - 1][i];
-                returnVal[key] += passResults[key];
+                Perceptron key = layers[layers.size() - 1][j];
+                returnVal[key] += passResults[key]; //! account for target value
             }
         }
         // Average out the loss using structured binding.
@@ -400,27 +411,6 @@ public:
     }
 };
 
-/**
- * Printable concept that requires type of a to be s.t. if we do os << a it is compilable
- */
-template <typename T>
-concept Printable = requires(std::ostream &os, T a) {
-    os << a;
-};
-
-/**
- * Template to auto write funtions (like java generic method) for printing out arrays for dfferent types
- */
-template <Printable T>
-void printVector(const std::vector<T> &vector)
-{
-    std::cout << "[";
-    for (T elem : vector)
-    {
-        std::cout << elem << ", ";
-    }
-    std::cout << "]";
-}
 
 // std::vector<std::vector<float>
 struct Data
@@ -492,7 +482,7 @@ std::vector<Data> readData()
 
 int main()
 {
-    NeuralNetwork n{std::vector{3, 3, 1}, 3};
+    NeuralNetwork n{std::vector{2, 3, 1}, 3};
     std::vector<Data> d = readData();
 
     printVector(d);
@@ -508,8 +498,10 @@ int main()
     }
     std::cout << "finished vectorising\n";
 
+
+    std::cout << "Results without training " <<  n.predict(input, output) << "\n";
     n.trainSGD(input, output);
-    std::cout << n.predict(input, output) << "\n";
+    std::cout << "Results after training " << n.predict(input, output) << "\n";
     std::cout << "hello world\n";
     return 0;
 }
