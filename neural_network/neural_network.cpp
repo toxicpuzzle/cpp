@@ -60,6 +60,7 @@ public:
             for (int i =0 ; i < layerDim; ++i){
                 std::shared_ptr<TransferFunc> tmp{new RELUTransfer{}};
                 Perceptron toInsert = Perceptron{tmp}; //! segfault from calling activation func? because RELU Transfer si alloc on stack, but perceptron takes its reference.
+                toInsert.learningRate = 1;
                 layer.push_back(toInsert);
                 toEdges[toInsert] = std::vector<std::shared_ptr<Edge>>{};
                 inEdges[toInsert] = std::vector<std::shared_ptr<Edge>>{};
@@ -179,6 +180,7 @@ public:
     }
 
     // Update the outputs of each layer using iteration (i.e. don't use recursion as that is slower)
+    // And returns the outputs for the last layer.
     std::unordered_map<Perceptron, float> forwardPass(std::vector<float> inputData)
     {
         // Compute the first layer's outputs (literally just inputs)
@@ -213,17 +215,15 @@ public:
         return lastLayerOutputs;
     }
 
-    // Updates the deltas for the next training session for every neuron using single inputData/OutputData pari
+    // Adds the delta update needed for neuron using single inputData/OutputData pair
+    // Adds to delta the current training pair
     void updateDeltas(std::vector<float> inputData, std::vector<float> outputData)
     {
         auto outputLayerResult = forwardPass(inputData);
-        int layerFromRight = 0;
-        for (std::vector<Perceptron> &layer : layers)
+        for (int layerFromRight = 0; layerFromRight < layers.size()-1 ; layerFromRight++)
         {
-            if (layerFromRight == layers.size() - 1)
-                break; // input layer does not have in edges
-
             int nodeNumInLayer = 0;
+            std::vector<Perceptron> layer = layers[layers.size() - layerFromRight - 1];
             for (Perceptron &curr : layer)
             {
                 float netForFrom = 0;
@@ -237,7 +237,7 @@ public:
                     {
                         // NB: This assumes that the loss function for the output layer just takes one input (else you need to MSE over errors);
                         // For batch training - you need MSE, i.e. do feedforward for all input-target pairs, calcualte 1/M * 1/2 (sum(target - actual)^2) which diffs to 1/M(sum(target-actual)) i.e. just the mean for this current calculation
-                        results[curr].delta = curr.transferApply->getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par->getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
+                        results[curr].delta += curr.transferApply->getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par->getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
                     }
                     else
                     {
@@ -247,28 +247,28 @@ public:
                         {
                             weightedDelta += out->getWeight() * results[out->getTo()].delta;
                         }
-                        results[curr].delta = curr.transferApply->getDerivative(netForFrom) * weightedDelta;
+                        results[curr].delta += curr.transferApply->getDerivative(netForFrom) * weightedDelta;
                     }
                 }
                 nodeNumInLayer++;
             }
-            layerFromRight++;
         }
     }
 
     std::unordered_map<Edge, float> getWeightUpdate(std::vector<float> inputData, std::vector<float> outputData)
     {
         std::unordered_map<Edge, float> weightChanges{};
-        for (std::vector<Perceptron> &layer : layers)
+        for (int layerFromRight = 0; layerFromRight < layers.size() - 1; layerFromRight++)
         {
+            std::vector<Perceptron> layer = layers[layers.size() - layerFromRight - 1];
             for (Perceptron &curr : layer)
             {
                 for (auto par : curr.getInEdges())
                 {
                     float fromOutput = par->getFrom().transferApply->getActivation(results[par->getFrom()].net);
-                    float fromDelta = results[par->getFrom()].delta;
+                    float toDelta = results[par->getTo()].delta; //! To Delta not from (else at input->next layer weights would have 0 delta always as input neurons have 0 delta?)
                     float learningRate = par->getFrom().getLearningRate();
-                    float weightChange = learningRate * fromOutput * fromDelta;
+                    float weightChange = learningRate * fromOutput * toDelta;
                     weightChanges[*par] = weightChange;
                 }
             }
