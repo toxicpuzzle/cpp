@@ -1,6 +1,10 @@
 #ifndef TRANSFER_H
 #define TRANSFER_H
 
+#include <cmath>
+
+static const float e_const = 2.718281828459045;
+
 class TransferFunc
 {
 public:
@@ -23,6 +27,20 @@ class RELUTransfer : public TransferFunc
         if (input <= 0)
             return 0;
         return 1;
+    }
+};
+
+class SigmoidTransfer : public TransferFunc
+{
+    float getActivation(float input) const
+    {   
+        return 1/(1+std::pow(e_const, -input));
+    }
+
+    float getDerivative(float input) const
+    {
+        float act = getActivation(input);
+        return act*(1-act);
     }
 };
 

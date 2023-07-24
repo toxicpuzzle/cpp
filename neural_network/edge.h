@@ -22,9 +22,9 @@ public:
 
     Perceptron &getTo() const;
 
-    int getWeightedActivation() const;
+    float getWeightedActivation() const;
 
-    int getWeight() const;
+    float getWeight() const;
 
     void setWeight(float weight);
 

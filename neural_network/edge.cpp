@@ -15,12 +15,12 @@ Perceptron &Edge::getTo() const
     return to;
 }
 
-int Edge::getWeightedActivation() const
+float Edge::getWeightedActivation() const
 {
     return from.getOutput() * weight;
 }
 
-int Edge::getWeight() const
+float Edge::getWeight() const
 {
     return weight;
 }

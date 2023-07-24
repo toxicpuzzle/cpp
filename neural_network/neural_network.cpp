@@ -45,9 +45,10 @@ class NeuralNetwork
     std::vector<std::vector<Perceptron>> layers;
     std::unordered_map<Perceptron, Result> results;
     std::unordered_map<int, Perceptron*> idToPerceptron;
+    std::vector<std::shared_ptr<Edge>> edges;
 
 public:
-    NeuralNetwork(std::vector<int> layerDims, float learningRate) : layers{}
+    NeuralNetwork(std::vector<int> layerDims, float learningRate) : layers{}, edges{}
     {
 
         // New rewrite
@@ -58,7 +59,7 @@ public:
         for (int layerDim : layerDims){
             std::vector<Perceptron> layer{};
             for (int i =0 ; i < layerDim; ++i){
-                std::shared_ptr<TransferFunc> tmp{new RELUTransfer{}};
+                std::shared_ptr<TransferFunc> tmp{new SigmoidTransfer{}};
                 Perceptron toInsert = Perceptron{tmp}; //! segfault from calling activation func? because RELU Transfer si alloc on stack, but perceptron takes its reference.
                 toInsert.learningRate = 1;
                 layer.push_back(toInsert);
@@ -78,10 +79,11 @@ public:
             for (auto& neuron: layer){
                 prevToCurrEdges.clear();
                 for (Perceptron* prev: previousLayer){
-                    std::shared_ptr<Edge> edge{new Edge{1, *prev, neuron}};
+                    std::shared_ptr<Edge> edge{new Edge{1.0, *prev, neuron}};
 
                     //? Creates two shared pointers to the edge so if
                     //? both neurons dealloc -> edge dealloc
+                    edges.push_back(edge);
                     toEdges[*prev].push_back(edge);
                     inEdges[neuron].push_back(edge);
                 }
@@ -179,6 +181,12 @@ public:
         // std::cout << "debug point";
     }
 
+    void printEdges(){
+        for (auto edge: edges){
+            std::cout << "w" << edge->getWeight() << " " << edge->getFrom() << "->" << edge->getTo() << "\n";
+        }
+    }
+
     // Update the outputs of each layer using iteration (i.e. don't use recursion as that is slower)
     // And returns the outputs for the last layer.
     std::unordered_map<Perceptron, float> forwardPass(std::vector<float> inputData)
@@ -220,39 +228,40 @@ public:
     void updateDeltas(std::vector<float> inputData, std::vector<float> outputData)
     {
         auto outputLayerResult = forwardPass(inputData);
+        // Calculate net input for every 
         for (int layerFromRight = 0; layerFromRight < layers.size()-1 ; layerFromRight++)
         {
             int nodeNumInLayer = 0;
             std::vector<Perceptron> layer = layers[layers.size() - layerFromRight - 1];
             for (Perceptron &curr : layer)
             {
-                float netForFrom = 0;
-                for (auto par : curr.getInEdges())
-                {
-                    float fromNet = results[par->getFrom()].net;
-                    float parActivation = par->getFrom().transferApply->getActivation(fromNet);
-                    float fromActivation = curr.transferApply->getActivation(results[curr].net);
-                    netForFrom += par->getWeight() * parActivation;
-                    if (layerFromRight == 0)
+                float currDeriv = curr.transferApply->getDerivative(results[curr].net);
+                if (layerFromRight == 0){
+                    // NB: This assumes that the loss function for the output layer just takes one input (else you need to MSE over errors);
+                    // For batch training - you need MSE, i.e. do feedforward for all input-target pairs, calcualte 1/M * 1/2 (sum(target - actual)^2) which diffs to 1/M(sum(target-actual)) i.e. just the mean for this current calculation
+                    float outputDiff = outputData[nodeNumInLayer] - outputLayerResult[curr];
+                    results[curr].delta = currDeriv * outputDiff; //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
+                } else {
+                    float dotWAndDelta = 0;
+                    for (auto outEdge : curr.getOutEdges())
                     {
-                        // NB: This assumes that the loss function for the output layer just takes one input (else you need to MSE over errors);
-                        // For batch training - you need MSE, i.e. do feedforward for all input-target pairs, calcualte 1/M * 1/2 (sum(target - actual)^2) which diffs to 1/M(sum(target-actual)) i.e. just the mean for this current calculation
-                        results[curr].delta += curr.transferApply->getDerivative(netForFrom) * (outputData[nodeNumInLayer] - outputLayerResult[par->getTo()]); //! assumes that edges are in order i.e. 1st in prev to 1st in next, then 1st in prev to 2nd in next...
+                        dotWAndDelta += outEdge->getWeight() * results[outEdge->getTo()].delta;
                     }
-                    else
-                    {
-                        // Calculate weighted activation
-                        float weightedDelta{};
-                        for (auto out : curr.getOutEdges())
-                        {
-                            weightedDelta += out->getWeight() * results[out->getTo()].delta;
-                        }
-                        results[curr].delta += curr.transferApply->getDerivative(netForFrom) * weightedDelta;
-                    }
-                }
+                    results[curr].delta = currDeriv*dotWAndDelta;
+                }   
                 nodeNumInLayer++;
             }
         }
+    }
+
+    void applyToDeltas(float (*apply)(float)){
+        for (auto& [key, value] : this->results){
+            value.delta = apply(value.delta);
+        }
+    }
+
+    void clearDeltas(){
+        applyToDeltas([](float delta){return (float)0.0;});
     }
 
     std::unordered_map<Edge, float> getWeightUpdate(std::vector<float> inputData, std::vector<float> outputData)
@@ -299,6 +308,8 @@ public:
                 }
             }
         }
+
+        // clearDeltas();
     }
 
     // Returns the mean loss for every perceptron for n data points.
@@ -311,8 +322,6 @@ private:
         for (int i = 0; i < inputData.size(); ++i)
         {
             auto passResults = forwardPass(inputData[i]);
-            printHashMap(results);
-            printHashMap(passResults);
             // Adds the last layer outputs to returnVal for current inputData pass
             for (int j = 0; j < layers[layers.size() - 1].size(); j++)
             {
@@ -387,6 +396,7 @@ public:
         for (int i = 0; i < inputData.size(); i++)
         {
             trainSingle(inputData[i], outputData[i]);
+            printEdges();
         }
         return 0;
     }
@@ -501,6 +511,9 @@ int main()
 
     std::cout << "Results without training " <<  n.predict(input, output) << "\n";
     n.trainSGD(input, output);
+    //! Problem - stops training i.e. no deltas after the first iteration 
+        //! Deltas are 0 because derivative becomes 0 with relu when input is negative (so how does relu train if it's f'(netq) is 0.
+            //! known as dying relu problem - when you initialise weights to 0 and use RELU on hidden layers.
     std::cout << "Results after training " << n.predict(input, output) << "\n";
     std::cout << "hello world\n";
     return 0;
