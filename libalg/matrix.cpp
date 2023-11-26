@@ -27,7 +27,7 @@ Matrix Matrix::broadcast(Matrix a, Matrix b, std::function<float(float, float)> 
 /**
 * Swaps rows/columns of matrix
 */
-Matrix Matrix::transpose(){
+Matrix Matrix::transpose() const{
     auto [h, w] = m_dims; 
     Matrix result{w, h};
 
@@ -64,7 +64,7 @@ Matrix Matrix::dot_product(Matrix a, Matrix b){
  * TODO
  * Computes Trace for square matrices
 */
-float Matrix::trace(){
+float Matrix::trace() const{
     assert(m_dims.first == m_dims.second);
     auto [h, w] = m_dims;
     int delta[2] = {1,1};
@@ -83,11 +83,11 @@ float Matrix::trace(){
 /**
  * Returns if matrix is row or column vector
 */
-bool Matrix::isVector(){
+bool Matrix::isVector() const{
     return m_dims.first == 1 || m_dims.second == 1;
 }
 
-bool Matrix::isSquare(){
+bool Matrix::isSquare() const{
     return m_dims.first == m_dims.second;
 }
 
@@ -95,7 +95,7 @@ bool Matrix::isSquare(){
  * TODO
  * Returns the l_x norm of the matrix, using element wise squaring
 */
-float Matrix::norm(int l_x){
+float Matrix::norm(int l_x) const{
     auto [h,w] = m_dims;
     Matrix placeholder{h, w};
     
@@ -119,82 +119,194 @@ float Matrix::norm(int l_x){
  * Factorial time implementation of brute force determinant expansion
  * More efficient implementation would invovle getting matrix to ref form first
 */
-std::optional<float> Matrix::determinant(){
+std::optional<float> Matrix::determinant() const{
     assert(this->isSquare());
     float result{};
     auto [h, w] = m_dims;
 
-    for (int i = 0; i < h; i++){
-        // Construct new matrix from eliminating row and col
+    // TODO: Use executor to track elementary matrices/determinant multipliers
+    // e.g. swap_row -> no change, mult_row -> det *= multiplier, add_row -> no change
+    Matrix ref_form = LASolve::ref(*this); 
 
-        // Add the matrix's deteriminant
-        bool is_positive = i%2 == 0;
-        
-
+    // Compute multiplle of diagonalas
+    int delta[2]{1,1};
+    int coord[2]{0,0};
+    float result = 1;
+    while (coord[0] >= ref_form.dims().first || coord[1] >= ref_form.dims().second){
+        result *= ref_form[coord[0]][coord[1]];
+        coord[0] += delta[0];
+        coord[1] += delta[1];
     }
+
+    // TODO: Compute multiples applied by ref process
 
     return result;
 }
 
 /**
+ * Gets the leading ones for particular row 
+*/
+int LASolve::Helpers::leading_one_idx(Matrix& a, int row){
+    int i = 0;
+    for (; a[row][i] == 0; i++);
+    return i;
+}
+
+/**
+ * Counts number of non zeroes in row of matrix
+*/
+int LASolve::Helpers::non_zeroes(Matrix& a, int row){
+    int num{0};
+    for (int i{0}; i < a[row].size(); i++){
+        if (a[row][i] != 0) num++;
+    }
+    return num;
+}
+
+/** 
+ * Swaps row_a and row_b of matrix a in place
+*/
+Matrix& LASolve::Helpers::swap_row(Matrix& a, int row_a, int row_b){
+    auto temp = a[row_a];
+    a[row_a] = a[row_b];
+    a[row_b] = a[row_a];
+    return a;
+}
+
+/**
+ *  Adds use_mult*row_use to row_apply in place
+*/
+Matrix& LASolve::Helpers::add_row(Matrix& a, int row_apply, int row_use, float use_mult){
+    for (int i = 0; i < a[row_apply].size(); i++){
+        a[row_apply][i] += a[row_use][i]*use_mult;
+    }
+    return a;
+}
+
+/**
+ * Multiplies a[row_num] by multiplier in place
+*/
+Matrix& LASolve::Helpers::mult_row(Matrix& a, int row_num, float multiplier){
+    for (int i = 0; i < a[row_num].size(); i++){
+        a[row_num][i] = a[row_num][i]*multiplier;
+    }
+    return a;
+}
+
+/** Matrix OPerations for LA SOlve*/
+
+/**
  * Returns Matrix in Row Echelon Form;
 */
 Matrix LASolve::ref(Matrix a, Executor* executor){
-    // Implement row_swaps, row wise * operationsf
-    auto comp = [](const RowKey& lhs, const RowKey& rhs){
+    /**
+     * O(N^3logn) implementation
+     * PQ of rows - highest left mostt leading 1s first, then by the number of leading ones
+     * Rank(row) = index from right of left most leading 1
+     * Pop from pq - ls - pop all that have same rank(row)
+     *             remove leading 1 overlaps with all rows in ls, put rows in ls back in ls.
+     *              add current row to result row
+     *              STOP when no more left to pop/ if leading 0s, fill rest of results wiht leading 0s.
+     * Could improve efficiency via bucket sort? 
+    */
+
+    // Comparator to sort in (leading_from_right, non_zeroes) from min->max
+    auto comp = [](const RowKey& lhs, const RowKey& rhs) -> bool{
         if (lhs.leading_from_right != rhs.leading_from_right) 
             return lhs.leading_from_right < rhs.leading_from_right;
         return lhs.non_zeroes < rhs.non_zeroes;
     };
+    auto right_offset_to_left_idx = [](const Matrix& a, const RowKey& k) -> int{
+        return a.dims().second - k.leading_from_right - 1;
+    };
     std::multiset<RowKey, std::function<bool(RowKey,RowKey)>> rowKeys{};
-
-    // Calculate RowKey for each row at the start.
-    for (int i = 0; i < a.dims().first; i++){
-        // Count number of non zeroes
-        int non_zeroes = 0;
-        int leading_from_right = 0;
-
-        for (int j = a.dims().second-1; j >=0; j--){
-            if (a[i][j] != 0) {
-                non_zeroes += 1;
-                leading_from_right = j;
-            }
-        }
-
-        rowKeys.insert(RowKey{non_zeroes, leading_from_right, i});
-    }
+    
 
     while (rowKeys.size() > 0){
-        auto key = rowKeys.end();
-        // TODO 
+        // Calculate RowKey for each row at the start.
+        for (int i = 0; i < a.dims().first; i++){
+            int non_zeroes = Helpers::non_zeroes(a, i);
+            int leading_from_right = a.dims().first-Helpers::leading_one_idx(a, i)-1;
+            rowKeys.insert(RowKey{non_zeroes, leading_from_right, i});
+        }
+
+        // Get iterator containing rowKeys with same leading one coefficient.
+        auto kept_row = *rowKeys.rbegin();
+        rowKeys.erase(kept_row);
+        auto lower = RowKey{kept_row};
+        lower.non_zeroes = 0;
+        auto upper = RowKey{kept_row};
+        upper.non_zeroes = INT32_MAX;
+        auto lower_bound = rowKeys.lower_bound(lower);
+        auto upper_bound = rowKeys.lower_bound(upper);
+        auto list = std::vector<RowKey>{};
+        // upper_bound--; // to avoid eliminating leading 1 for kept_row
+        lower_bound--; // to ensure we get last one one with same leading 1 index
+
+        // Extract everything in between upper and lower bound
+        for (auto start = upper_bound; start != lower_bound; start--)
+            list.push_back(*start);
+        
+        // Eliminate overlapping rows
+        for (auto curr = list.begin(); curr != list.end(); curr++){
+            int leading_one_idx = right_offset_to_left_idx(a, *curr);
+            float leading_one_val = a[curr->row][leading_one_idx];
+            int kept_row_loi = right_offset_to_left_idx(a, kept_row);
+            float kept_row_lov = a[kept_row.row][kept_row_loi];
+
+            // Mutliplier add for elimination
+            float mult = -1*kept_row_lov/leading_one_val;
+            Helpers::add_row(a, curr->row, kept_row.row, mult);
+
+            // Update the values 
+            auto node = rowKeys.extract(*curr);
+            node.value().leading_from_right = Helpers::leading_one_idx(a, node.value().row);
+            node.value().leading_from_right = right_offset_to_left_idx(a, node.value());
+            rowKeys.insert(std::move(node));
+        }
     }
 
-    // O(N^3logn) implementation
-    // PQ of rows - highest left mostt leading 1s first, then by the number of leading ones
-    // Rank(row) = index from right of left most leading 1
-    // Pop from pq - ls - pop all that have same rank(row)
-    //               remove leading 1 overlaps with all rows in ls, put rows in ls back in ls.
-    //               add current row to result row
-    //               STOP when no more left to pop/ if leading 0s, fill rest of results wiht leading 0s.
-    // Could improve efficiency via bucket sort?
-
-    // Start with first row, have common leading 1s
-    return Matrix{1,1};
+    return a;
 }
 
+/**
+ * Returns the matrix in reduced row echolon form.
+*/
 Matrix LASolve::rref(Matrix a, Executor* executor){ 
     Matrix ref = LASolve::ref(a);
     // O(N^3) implementation
     // PQ of rows in reverse rank(Row) order
     // Make current row leading coeff a one by mult_row
     // Remove extraneous columns by iterating through previous processed rows.
+    std::multiset<RowKey> rowKeys{};
+
+    for (int row = ref.dims().first-1; row >= 0; row--){
+        float leading_one_coeff = a[row][Helpers::leading_one_idx(a, row)];
+        Helpers::mult_row(a, row, 1/leading_one_coeff);
+        for (int done = row+1; done < ref.dims().first; done++){
+            int done_loi = Helpers::leading_one_idx(a, done);
+            int done_loc = a[done][done_loi];
+            if (done_loc == 0) break; // for free vars, no need to eliminate
+            float mult = -1*a[row][done_loi]/done_loc;
+            Helpers::add_row(a, row, done, mult);
+        }
+    }
+
     return ref;
 }
 
+/**
+ * Returns the inverse of the matrix if possible
+*/
 Matrix LASolve::inverse(Matrix a, Executor* executor){
+    assert(a.isSquare() && a.determinant() != 0);
+    // Or instead of calculating determinant, we can just check at end?
+
     // Some way to syc operations on both matrices e.g. using wrappers around swap_Row, mult_row ...
     // Or replace the swap/mult operations by adding them to a list. (command pattern)
         // Separate out from matrix, create objects for add row, swap
+}
 
+std::vector<float> eigenvals(Matrix a){
 
 }

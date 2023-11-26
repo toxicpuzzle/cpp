@@ -15,6 +15,12 @@ class Matrix{
 
     std::vector<std::vector<float>> m_values;
     std::pair<int, int> m_dims; // height, width
+    // Strategy method to get leading 1s? nah probably subclass because +/- operations
+    // need to be modified to ensure leading 1s can e.g. be calculated in O(1) time by
+    // popping from stack/linked list when necessary.
+    // Actually don't need to, does not change time complexity anyways as after you find
+    // the leading 1 in O(1) you need still need to apply row wise op in O(n),
+    // additive of the same or lower level O complexity does not affect overall TC
 
 public:
 
@@ -27,24 +33,28 @@ public:
 
     std::vector<float>& operator[](int row);
 
-    std::optional<float> determinant();
+    std::optional<float> determinant() const;
 
-    float norm(int l_x);
+    float norm(int l_x) const;
 
-    float trace();
+    float trace() const;
     
-    bool isVector();
+    bool isVector() const;
 
-    bool isSquare();
+    bool isSquare() const;
 
-    Matrix transpose();
+    Matrix transpose() const;
 
-    std::pair<int,int> dims();
+    std::pair<int,int> dims() const;
 
     static Matrix dot_product(Matrix a, Matrix b);
 
     static Matrix broadcast(Matrix a, Matrix b, std::function<float(float, float)>);
 };
+
+// class LeadingOneDecorator: public Matrix{
+//     Matrix 
+// }
 
 namespace Vector{
     
@@ -65,6 +75,8 @@ namespace LASolve{
         Matrix& swap_row(Matrix& a, int row_a, int row_b);
         Matrix& mult_row(Matrix&a, int row_num, float multiplier);
         Matrix& add_row(Matrix& a, int row_apply, int row_use, float use_mult);
+        int non_zeroes(Matrix& a, int row);
+        int leading_one_idx(Matrix& a, int row); // ideally should have stack wrapper to maintain leading 1
     };
 
     struct RowKey{
