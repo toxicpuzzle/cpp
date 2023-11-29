@@ -15,6 +15,7 @@ class Matrix{
 
     std::vector<std::vector<float>> m_values;
     std::pair<int, int> m_dims; // height, width
+    bool isUpperLowerDiagonal = false;
     // Strategy method to get leading 1s? nah probably subclass because +/- operations
     // need to be modified to ensure leading 1s can e.g. be calculated in O(1) time by
     // popping from stack/linked list when necessary.
@@ -50,6 +51,8 @@ public:
     static Matrix dot_product(Matrix a, Matrix b);
 
     static Matrix broadcast(Matrix a, Matrix b, std::function<float(float, float)>);
+
+    static Matrix getIdentity(int height, int width);
 };
 
 // class LeadingOneDecorator: public Matrix{
@@ -100,12 +103,15 @@ namespace LASolve{
 class Command{
 protected:
     Matrix* m_matrix;
-
+    float m_det;
+    
 public:
-    Command(Matrix* m) : m_matrix{m} {};
+    Command(Matrix* m) : m_matrix{m}, m_det{-1} {};
     void setMatrix(Matrix* m) {
         m_matrix = m;
     }
+    float computedDeterminant();
+    virtual Matrix computeCommandMatrix() = 0;
     virtual void invoke() = 0;
 };
 
@@ -115,11 +121,15 @@ public:
     int row_b;
 
     CommandSwapRow(Matrix* m, int row_a, int row_b) : 
-        Command{m}, row_a{row_a}, row_b{row_b} {}
+        Command{m}, row_a{row_a}, row_b{row_b}{
+            m_det=1;
+        }
 
     void invoke() override{
         LASolve::Helpers::swap_row(*(this->m_matrix), row_a, row_b);
     };
+
+    Matrix computeCommandMatrix();
 };
 
 class CommandMultRow: public Command{
@@ -128,11 +138,14 @@ public:
     int multiplier;
 
     CommandMultRow(Matrix* m, int row_num, float ) : 
-        Command{m}, row_num{row_num}, multiplier{multiplier} {}
+        Command{m}, row_num{row_num}, multiplier{multiplier} {
+            m_det=multiplier;
+        }
 
     void invoke() override{
         LASolve::Helpers::mult_row(*(this->m_matrix), row_num, multiplier);
     };
+    Matrix computeCommandMatrix();
 };
 
 class CommandAddRow: public Command{
@@ -142,11 +155,15 @@ public:
     float use_mult;
 
     CommandAddRow(Matrix* m, int row_apply, int row_use, float use_mult) : 
-        Command{m}, row_apply{row_apply}, row_use{row_use}, use_mult{use_mult} {}
+        Command{m}, row_apply{row_apply}, row_use{row_use}, use_mult{use_mult} {
+            m_det=1;
+        }
   
     void invoke() override{
         LASolve::Helpers::add_row(*(this->m_matrix), row_apply, row_use, use_mult);
     };
+    Matrix computeCommandMatrix();
+
 };
 
 class Executor{

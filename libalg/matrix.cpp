@@ -116,19 +116,20 @@ float Matrix::norm(int l_x) const{
 
 /**
  * TODO
- * Factorial time implementation of brute force determinant expansion
- * More efficient implementation would invovle getting matrix to ref form first
+ * Computes the determinant of a matrix by first reducing it to REF form which
+ * is upper diagonal, then taking the product of the leading ones of each row and
+ * also the determinants of elementary matrices used to obtain the REF form.
 */
 std::optional<float> Matrix::determinant() const{
     assert(this->isSquare());
     float result{};
     auto [h, w] = m_dims;
 
-    // TODO: Use executor to track elementary matrices/determinant multipliers
     // e.g. swap_row -> no change, mult_row -> det *= multiplier, add_row -> no change
-    Matrix ref_form = LASolve::ref(*this); 
+    Executor e{};
+    Matrix ref_form = LASolve::ref(*this, &e); 
 
-    // Compute multiplle of diagonalas
+    // Compute multiple of diagonals
     int delta[2]{1,1};
     int coord[2]{0,0};
     float result = 1;
@@ -138,9 +139,54 @@ std::optional<float> Matrix::determinant() const{
         coord[1] += delta[1];
     }
 
-    // TODO: Compute multiples applied by ref process
+    for (auto& command: e.commands){
+        result *= command->computedDeterminant();
+    }
 
     return result;
+}
+
+/**
+ * Returns the Identity Matrix
+*/
+Matrix Matrix::getIdentity(int height, int width){
+    Matrix m{height, width, 0};
+    int delta[2] = {1,1};
+    int curr[2] = {0,0};
+    while (curr[0] < height && curr[1] < width){
+        m[curr[0]][curr[1]] = 1;
+        curr[0] += delta[0];
+        curr[1] += delta[1];
+    }
+    return m;
+}
+
+float Command::computedDeterminant(){
+    return m_det;
+}
+
+Matrix CommandAddRow::computeCommandMatrix(){
+    auto [h, w] = m_matrix->dims();
+    Matrix identity = Matrix::getIdentity(h,w);
+    identity[row_apply][row_use] = use_mult;
+    return identity;
+}
+
+Matrix CommandMultRow::computeCommandMatrix(){
+    auto [h, w] = m_matrix->dims();
+    Matrix identity = Matrix::getIdentity(h,w);
+    identity[row_num][row_num] *= multiplier;
+    return identity;
+}
+
+Matrix CommandSwapRow::computeCommandMatrix(){
+    auto [h, w] = m_matrix->dims();
+    Matrix identity = Matrix::getIdentity(h,w);
+    identity[row_a][row_b] = 1;
+    identity[row_a][row_a] = 0;
+    identity[row_b][row_a] = 1;
+    identity[row_b][row_b] = 0;
+    return identity;
 }
 
 /**
