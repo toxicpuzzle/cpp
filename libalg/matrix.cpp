@@ -46,13 +46,15 @@ Matrix Matrix::transpose() const{
 */
 Matrix Matrix::dot_product(Matrix a, Matrix b){
     assert(a.dims().second == b.dims().first); // Same inner dim
-    auto [h, w] = a.dims(); // must use auto for structured bindings
+    int h = a.dims().first;
+    int w = b.dims().second;
+    int inner_dim = a.dims().second;
     Matrix result{h, w};
 
     for (int i = 0; i < h; i++){
         for (int j = 0; j < w; j++){
-            for (int k = 0; k < w; k++){
-                result[i][j] = a[i][k] + b[k][j];
+            for (int k = 0; k < inner_dim; k++){
+                result[i][j] += a[i][k] * b[k][j];
             }            
         }
     }
@@ -80,6 +82,14 @@ float Matrix::trace() const{
     return result;
 }
 
+std::pair<int,int> Matrix::dims() const{
+    return m_dims;
+}
+
+bool Matrix::isSquare() const{
+    return m_dims.first == m_dims.second;
+}
+
 /**
  * Returns if matrix is row or column vector
 */
@@ -87,8 +97,22 @@ bool Matrix::isVector() const{
     return m_dims.first == 1 || m_dims.second == 1;
 }
 
-bool Matrix::isSquare() const{
-    return m_dims.first == m_dims.second;
+std::string Matrix::toString() const{
+    std::string string;
+    string += "[";
+    auto [rows, cols] = this->dims();
+
+    for (int i = 0; i < rows; i++){
+        string += "[";
+        for (int j = 0; j < cols; j++){
+            string += std::to_string(this->m_values[i][j]);
+            if (j != cols-1) string += ", ";
+        }
+        string += "]";
+        if (i != rows-1) string += ", ";
+    }
+
+    return string;
 }
 
 /**
@@ -132,7 +156,7 @@ std::optional<float> Matrix::determinant() const{
     // Compute multiple of diagonals
     int delta[2]{1,1};
     int coord[2]{0,0};
-    float result = 1;
+    result = 1;
     while (coord[0] >= ref_form.dims().first || coord[1] >= ref_form.dims().second){
         result *= ref_form[coord[0]][coord[1]];
         coord[0] += delta[0];
@@ -319,7 +343,8 @@ Matrix LASolve::ref(Matrix a, Executor* executor){
  * Returns the matrix in reduced row echolon form.
 */
 Matrix LASolve::rref(Matrix a, Executor* executor){ 
-    Matrix ref = LASolve::ref(a);
+    Matrix ref = LASolve::ref(a, executor);
+    // TODO: Use the executor.
     // O(N^3) implementation
     // PQ of rows in reverse rank(Row) order
     // Make current row leading coeff a one by mult_row
@@ -351,8 +376,23 @@ Matrix LASolve::inverse(Matrix a, Executor* executor){
     // Some way to syc operations on both matrices e.g. using wrappers around swap_Row, mult_row ...
     // Or replace the swap/mult operations by adding them to a list. (command pattern)
         // Separate out from matrix, create objects for add row, swap
+
+    return Matrix{1,1};
 }
 
 std::vector<float> eigenvals(Matrix a){
+    return std::vector<float>{};
+}
 
+bool Matrix::operator==(Matrix& b) const{
+    if (this->dims() != b.dims()) return false;
+
+    auto [rows, cols] = this->dims();
+    for (int i = 0; i < rows; i++){
+        for (int j = 0; j < cols; j++){
+            if (this->m_values[i][j] != b[i][j]) return false;
+        }
+    }
+
+    return true;
 }

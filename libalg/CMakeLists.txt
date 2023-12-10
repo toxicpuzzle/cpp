@@ -22,12 +22,14 @@ include(GoogleTest)
 enable_testing()
 add_subdirectory(tests)
 # add_executable(libalg_test tests/libalg_test.cc)
-# target_link_libraries(libalg_test GTest::gtest_main)
+# target_link_libraries(libalg_test GTest::gtest_main libalg)
 
 # gtest_discover_tests(libalg_test)
 
 # Main execs
-add_executable(libalg libalg.cpp matrix.cpp transforms.cpp)
+set(sources libalg.cpp matrix.cpp transforms.cpp)
+add_executable(libalg ${sources})
+add_library(matrix matrix.hpp matrix.cpp)
 
 # Allows linking subdirectories
 add_subdirectory(MathFunctions) # Adds subdirectory to build
@@ -36,7 +38,9 @@ target_include_directories(libalg PUBLIC
                           "${PROJECT_BINARY_DIR}"
                           "${PROJECT_SOURCE_DIR}/MathFunctions"
                           ) # Optional - Allow us to include "sqrt.h" instead of "MathFunctions/sqrt.h"
-  
+# target_include_directories(libalg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)

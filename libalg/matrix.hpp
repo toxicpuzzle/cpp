@@ -34,6 +34,8 @@ public:
 
     std::vector<float>& operator[](int row);
 
+    bool operator==(Matrix& m) const;
+
     std::optional<float> determinant() const;
 
     float norm(int l_x) const;
@@ -53,6 +55,8 @@ public:
     static Matrix broadcast(Matrix a, Matrix b, std::function<float(float, float)>);
 
     static Matrix getIdentity(int height, int width);
+
+    std::string toString() const;
 };
 
 // class LeadingOneDecorator: public Matrix{
