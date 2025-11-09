@@ -1,0 +1,422 @@
+# C++ Template Mastery Exercises
+
+A progressive series of exercises designed to master C++ templates, from basic function templates to advanced metaprogramming techniques.
+
+## 📚 Overview
+
+This exercise set covers:
+- ✅ Basic function and class templates
+- ✅ Template specialization
+- ✅ Variadic templates
+- ✅ SFINAE techniques
+- ✅ C++20 Concepts
+- ✅ Advanced patterns (CRTP, Expression Templates, etc.)
+
+## 🎯 Learning Path
+
+### Exercise 01: Function Templates (Basics)
+**File:** `01_function_templates.hpp`
+
+Learn the fundamentals of function templates:
+- Basic template syntax and type deduction
+- Multiple template parameters
+- Non-type template parameters
+- Return type deduction with `auto`
+- Template overloading
+
+**Key Concepts:**
+- `template<typename T>`
+- Type deduction vs explicit specification
+- Template parameter defaults
+- Working with containers
+
+**Exercises:** 8 progressively challenging problems
+
+---
+
+### Exercise 02: Class Templates
+**File:** `02_class_templates.hpp`
+
+Master class templates by building your own containers:
+- Fixed-size and dynamic arrays
+- Custom pair and tuple implementations
+- Stack data structure
+- Member function templates
+- Static members in templates
+- Nested template classes
+
+**Build Your Own:**
+- `FixedArray<T, N>` - compile-time sized array
+- `DynamicArray<T>` - dynamic vector-like container
+- `Stack<T, N>` - LIFO container
+- `SmallVector<T>` - initializer list support
+
+**Exercises:** 8 hands-on implementations
+
+---
+
+### Exercise 03: Template Specialization
+**File:** `03_specialization.hpp`
+
+Learn to specialize templates for specific types:
+- Full function template specialization
+- Full class template specialization
+- Partial specialization
+- Specialization for optimization
+- Pointer and reference specializations
+
+**Real-World Applications:**
+- Optimized `strcmp` for C-strings
+- Bit-packed `bool` storage
+- Type detection (`TypeInfo<T>`)
+- Default value factories
+- memcpy optimization for POD types
+
+**Exercises:** 8 specialization patterns
+
+---
+
+### Exercise 04: Variadic Templates
+**File:** `04_variadic_templates.hpp`
+
+Handle arbitrary numbers of template arguments:
+- Parameter packs and pack expansion
+- Recursive template techniques
+- C++17 fold expressions
+- Perfect forwarding
+- Index sequences
+
+**Create Utilities:**
+- `print(args...)` - variadic printer
+- `sum(args...)` - fold expression sum
+- `maximum(args...)` - recursive max finder
+- `forEach(func, args...)` - apply function to all
+
+**Exercises:** 12 variadic patterns
+
+---
+
+### Exercise 05: SFINAE
+**File:** `05_sfinae.hpp`
+
+Substitution Failure Is Not An Error - conditional compilation:
+- `std::enable_if` patterns
+- Type trait detection
+- Member function detection
+- Iterator category detection
+- `std::void_t` idiom
+
+**Advanced Techniques:**
+- Overload sets based on type properties
+- Compile-time type selection
+- Custom trait implementation
+- Return type SFINAE
+
+**Exercises:** 10 SFINAE techniques
+
+---
+
+### Exercise 06: C++20 Concepts
+**File:** `06_concepts.hpp`
+
+Modern, readable template constraints:
+- Basic concept definition
+- Concept composition
+- Standard library concepts
+- Requires clauses
+- Concept subsumption
+
+**Define Concepts:**
+- `Numeric` - arithmetic types
+- `Comparable` - types with `operator<`
+- `Container` - types with begin/end/size
+- `Printable` - types with `operator<<`
+
+**Note:** Requires C++20 compiler support
+
+**Exercises:** 12 concept patterns
+
+---
+
+### Exercise 07: Advanced Techniques
+**File:** `07_advanced.hpp`
+
+Master advanced template metaprogramming:
+- CRTP (Curiously Recurring Template Pattern)
+- Policy-based design
+- Tag dispatching
+- Expression templates
+- Compile-time computation
+- Type list manipulation
+
+**Advanced Patterns:**
+- `Comparable<Derived>` - CRTP mixin
+- `SmartPtr<T, Policy>` - policy-based design
+- `Fibonacci<N>` - compile-time recursion
+- `IsPrime<N>` - compile-time prime checking
+- Expression templates for lazy evaluation
+
+**Exercises:** 12 advanced techniques
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- C++17 or later compiler (C++20 for concepts)
+- CMake 3.14+
+- GoogleTest (automatically fetched)
+
+### Build Instructions
+
+1. **Configure the build:**
+   ```bash
+   cd /home/user/cpp/template_exercises
+   cmake -B build
+   ```
+
+2. **Build the tests:**
+   ```bash
+   cmake --build build
+   ```
+
+3. **Run all tests:**
+   ```bash
+   ./build/tests/template_test
+   ```
+
+4. **Run specific test suite:**
+   ```bash
+   ./build/tests/template_test --gtest_filter=Ex01*
+   ```
+
+---
+
+## 📝 How to Complete Exercises
+
+### Step-by-Step Workflow
+
+1. **Open an exercise file** (e.g., `01_function_templates.hpp`)
+
+2. **Read the exercise description and requirements**
+   - Each exercise has detailed comments
+   - Usage examples are provided
+   - Requirements are clearly specified
+
+3. **Implement the solution** where it says `YOUR CODE HERE:`
+
+4. **Open the test file** (`tests/template_exercises_test.cc`)
+
+5. **Uncomment the include** for your exercise:
+   ```cpp
+   #include "../01_function_templates.hpp"
+   ```
+
+6. **Uncomment the corresponding tests:**
+   ```cpp
+   TEST(Ex01_FunctionTemplates, MyMax) {
+       EXPECT_EQ(Ex01::myMax(5, 10), 10);
+       // ...
+   }
+   ```
+
+7. **Build and run tests:**
+   ```bash
+   cmake --build build
+   ./build/tests/template_test
+   ```
+
+8. **Fix any compilation errors or test failures**
+
+9. **Move to the next exercise**
+
+---
+
+## 💡 Tips for Success
+
+### Template Debugging
+- **Compiler errors can be verbose** - look for the actual error message buried in the output
+- **Use `static_assert`** to test compile-time conditions
+- **Break complex templates** into smaller helper templates
+- **Test incrementally** - don't write everything at once
+
+### Best Practices
+- **Follow the existing code style:**
+  - `m_` prefix for member variables
+  - camelCase for methods
+  - Clear, descriptive names
+  - Comments for complex logic
+
+- **Use modern C++ features:**
+  - Structured bindings: `auto [a, b] = pair;`
+  - `if constexpr` for compile-time branches
+  - Range-based for loops
+  - `auto` for type deduction
+
+### Testing Strategy
+1. Start with simple test cases
+2. Test edge cases (empty, zero, null)
+3. Test with different types
+4. Verify both success and failure cases
+
+---
+
+## 🎓 Learning Resources
+
+### Concepts to Master
+
+**Exercise 01-02:**
+- Template syntax and instantiation
+- Type deduction rules
+- Non-type template parameters
+
+**Exercise 03:**
+- Specialization rules and precedence
+- Partial vs full specialization
+- When to use specialization
+
+**Exercise 04:**
+- Parameter pack expansion
+- Fold expressions
+- Perfect forwarding with `std::forward`
+
+**Exercise 05:**
+- SFINAE principle
+- `std::enable_if` patterns
+- Type traits library
+- `decltype` and `declval`
+
+**Exercise 06:**
+- Concepts vs SFINAE
+- Requires clauses
+- Concept subsumption rules
+
+**Exercise 07:**
+- CRTP pattern and static polymorphism
+- Template metaprogramming
+- Compile-time vs runtime decisions
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**Build fails with "C++20 required":**
+```bash
+# Check your CMakeLists.txt has:
+set(CMAKE_CXX_STANDARD 20)
+```
+
+**Tests don't run:**
+```bash
+# Make sure you've uncommented the include and test cases
+# Rebuild after changes:
+cmake --build build
+```
+
+**Linker errors with static members:**
+```cpp
+// Don't forget to define static members outside the class:
+template<typename T>
+size_t Counter<T>::s_count = 0;
+```
+
+**Template errors are hard to read:**
+- Use `c++filt` to demangle names
+- Focus on the first error
+- Use `-ftemplate-backtrace-limit=0` for full trace
+
+---
+
+## 📊 Progress Tracking
+
+Track your progress through the exercises:
+
+- [ ] Exercise 01: Function Templates (8/8)
+- [ ] Exercise 02: Class Templates (8/8)
+- [ ] Exercise 03: Specialization (8/8)
+- [ ] Exercise 04: Variadic Templates (12/12)
+- [ ] Exercise 05: SFINAE (10/10)
+- [ ] Exercise 06: Concepts (12/12) ⚠️ Requires C++20
+- [ ] Exercise 07: Advanced (12/12)
+
+**Total:** 70 exercises
+
+---
+
+## 🎯 Challenge Yourself
+
+After completing the exercises:
+
+1. **Extend your solutions:**
+   - Add more functionality
+   - Handle edge cases
+   - Optimize performance
+
+2. **Combine techniques:**
+   - Use SFINAE with variadic templates
+   - Apply concepts to CRTP
+   - Create expression templates with concepts
+
+3. **Real-world applications:**
+   - Enhance your `libalg` matrix library with templates
+   - Add template-based optimizations to thread pool
+   - Create generic algorithms for your neural network
+
+4. **Performance analysis:**
+   - Compare template metaprogramming vs runtime
+   - Benchmark specialized vs generic code
+   - Analyze binary size impact
+
+---
+
+## 🤝 Integration with Existing Code
+
+These exercises complement your existing projects:
+
+**Linear Algebra Library (`libalg/`):**
+- Apply template techniques to `Matrix` class
+- Use concepts for type constraints
+- Add expression templates for lazy evaluation
+
+**Thread Pool:**
+- Template the job type
+- Use perfect forwarding for job arguments
+- Apply SFINAE for callable detection
+
+**Neural Network:**
+- Template-based layer types
+- Compile-time network architecture
+- Generic activation functions
+
+---
+
+## 📚 References
+
+- [cppreference.com - Templates](https://en.cppreference.com/w/cpp/language/templates)
+- [C++ Templates: The Complete Guide](https://www.josuttis.com/tmplbook/)
+- [C++20 Concepts](https://en.cppreference.com/w/cpp/language/constraints)
+- [SFINAE and enable_if](https://en.cppreference.com/w/cpp/types/enable_if)
+- [Template Metaprogramming](https://en.wikibooks.org/wiki/C%2B%2B_Programming/Templates/Template_Meta-Programming)
+
+---
+
+## 🎉 Completion
+
+Once you've completed all exercises, you'll have mastered:
+- Writing generic, reusable code
+- Compile-time computation and optimization
+- Advanced C++ template techniques
+- Modern C++17/20 features
+- Template design patterns
+
+**Next Steps:**
+- Apply these techniques to real projects
+- Explore template libraries (Boost, Eigen)
+- Contribute to open-source template-heavy projects
+- Teach others what you've learned!
+
+---
+
+Happy templating! 🚀
