@@ -13,6 +13,11 @@
 // #include "../05_sfinae.hpp"
 // #include "../06_concepts.hpp"
 // #include "../07_advanced.hpp"
+// #include "../08_x_macros.hpp"
+// #include "../09_pimpl.hpp"
+// #include "../10_cpp_idioms.hpp"
+// #include "../11_design_patterns.hpp"
+// #include "../12_type_techniques.hpp"
 
 /**
  * Template Exercises Test Suite
@@ -454,6 +459,323 @@ TEST(Ex07_Advanced, MyRemoveConst) {
 
     bool same2 = std::is_same_v<Ex07::MyRemoveConst<int>::type, int>;
     EXPECT_TRUE(same2);
+}
+*/
+
+// ============================================================================
+// EXERCISE 08: X Macros Tests
+// ============================================================================
+
+/*
+TEST(Ex08_XMacros, ColorEnumAndString) {
+    Ex08::Color c = Ex08::Color::RED;
+    std::string s = Ex08::colorToString(c);
+    EXPECT_EQ(s, "RED");
+
+    Ex08::Color c2 = Ex08::stringToColor("GREEN");
+    EXPECT_EQ(c2, Ex08::Color::GREEN);
+}
+
+TEST(Ex08_XMacros, ErrorCodes) {
+    Ex08::ErrorCode err = Ex08::ErrorCode::FILE_NOT_FOUND;
+    std::string msg = Ex08::getErrorMessage(err);
+    EXPECT_EQ(msg, "The specified file was not found");
+
+    std::string name = Ex08::getErrorName(err);
+    EXPECT_EQ(name, "FILE_NOT_FOUND");
+}
+
+TEST(Ex08_XMacros, ExecuteCommand) {
+    std::stringstream buffer;
+    std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
+
+    Ex08::executeCommand(Ex08::Command::START);
+
+    std::cout.rdbuf(old);
+    EXPECT_TRUE(buffer.str().find("START") != std::string::npos);
+}
+
+TEST(Ex08_XMacros, Calculate) {
+    EXPECT_EQ(Ex08::calculate(Ex08::Operation::ADD, 5, 3), 8);
+    EXPECT_EQ(Ex08::calculate(Ex08::Operation::MUL, 5, 3), 15);
+    EXPECT_EQ(Ex08::calculate(Ex08::Operation::SUB, 5, 3), 2);
+}
+
+TEST(Ex08_XMacros, BitFlags) {
+    unsigned int flags = 0;
+    Ex08::setFlag(flags, Ex08::FLAG_READ);
+    Ex08::setFlag(flags, Ex08::FLAG_WRITE);
+
+    EXPECT_TRUE(Ex08::hasFlag(flags, Ex08::FLAG_READ));
+    EXPECT_TRUE(Ex08::hasFlag(flags, Ex08::FLAG_WRITE));
+    EXPECT_FALSE(Ex08::hasFlag(flags, Ex08::FLAG_EXECUTE));
+}
+*/
+
+// ============================================================================
+// EXERCISE 09: PIMPL Idiom Tests
+// ============================================================================
+
+/*
+TEST(Ex09_PIMPL, BasicWidget) {
+    Ex09::Widget w;
+    w.setName("MyWidget");
+    EXPECT_EQ(w.getName(), "MyWidget");
+    w.doWork();
+}
+
+TEST(Ex09_PIMPL, CopyablePerson) {
+    Ex09::Person p1{"John", 30, "123 Main St"};
+    Ex09::Person p2 = p1;  // copy
+
+    EXPECT_EQ(p1.getName(), "John");
+    EXPECT_EQ(p2.getName(), "John");
+
+    Ex09::Person p3 = std::move(p1);  // move
+    EXPECT_EQ(p3.getName(), "John");
+}
+
+TEST(Ex09_PIMPL, SharedData) {
+    Ex09::SharedData d1;
+    d1.setValue(42);
+
+    Ex09::SharedData d2 = d1;  // shares implementation
+    d2.setValue(100);
+
+    EXPECT_EQ(d1.getValue(), 100);  // both see the change
+
+    Ex09::SharedData d3 = d2.clone();  // deep copy
+    d3.setValue(200);
+    EXPECT_EQ(d2.getValue(), 100);  // d2 unchanged
+}
+
+TEST(Ex09_PIMPL, DatabaseResource) {
+    Ex09::Database db;
+    db.connect("localhost:5432");
+    db.execute("SELECT * FROM users");
+    db.disconnect();
+}
+
+TEST(Ex09_PIMPL, ThreadSafeCounter) {
+    Ex09::ThreadSafeCounter counter;
+    counter.increment();
+    counter.increment();
+    EXPECT_EQ(counter.get(), 2);
+    counter.decrement();
+    EXPECT_EQ(counter.get(), 1);
+}
+*/
+
+// ============================================================================
+// EXERCISE 10: C++ Idioms Tests
+// ============================================================================
+
+/*
+TEST(Ex10_Idioms, RAIIFileHandle) {
+    {
+        Ex10::FileHandle file("test.txt", "w");
+        EXPECT_TRUE(file.isOpen());
+        file.write("test data");
+    }  // file automatically closed
+}
+
+TEST(Ex10_Idioms, RuleOfZero) {
+    Ex10::DataContainer dc;
+    dc.addValue(42);
+    dc.addValue(100);
+    EXPECT_EQ(dc.getValue(0), 42);
+    EXPECT_EQ(dc.getValue(1), 100);
+}
+
+TEST(Ex10_Idioms, RuleOfThree) {
+    Ex10::Array a1(10);
+    a1[0] = 42;
+
+    Ex10::Array a2 = a1;  // copy constructor
+    EXPECT_EQ(a2[0], 42);
+
+    Ex10::Array a3(5);
+    a3 = a1;  // copy assignment
+    EXPECT_EQ(a3[0], 42);
+}
+
+TEST(Ex10_Idioms, RuleOfFive) {
+    Ex10::Buffer b1(1024);
+    b1.write(42);
+
+    Ex10::Buffer b2 = std::move(b1);  // move constructor
+    EXPECT_EQ(b2.read(), 42);
+
+    Ex10::Buffer b3(512);
+    b3 = std::move(b2);  // move assignment
+    EXPECT_EQ(b3.read(), 42);
+}
+
+TEST(Ex10_Idioms, CopyAndSwap) {
+    Ex10::String s1("Hello");
+    Ex10::String s2("World");
+
+    s1 = s2;  // uses copy-and-swap
+    EXPECT_EQ(s1.c_str(), std::string("World"));
+}
+
+TEST(Ex10_Idioms, NamedParameter) {
+    Ex10::HttpRequest req;
+    req.setUrl("http://example.com")
+       .setMethod("POST")
+       .setTimeout(30)
+       .execute();
+}
+
+TEST(Ex10_Idioms, StrongType) {
+    Ex10::UserId userId{42};
+    Ex10::ProductId productId{42};
+
+    EXPECT_EQ(userId.get(), 42);
+    EXPECT_EQ(productId.get(), 42);
+
+    // userId == productId;  // should not compile
+}
+
+TEST(Ex10_Idioms, ScopeGuard) {
+    bool cleaned = false;
+    {
+        Ex10::ScopeGuard guard([&cleaned]{ cleaned = true; });
+        EXPECT_FALSE(cleaned);
+    }
+    EXPECT_TRUE(cleaned);
+}
+*/
+
+// ============================================================================
+// EXERCISE 11: Design Patterns Tests
+// ============================================================================
+
+/*
+TEST(Ex11_DesignPatterns, Singleton) {
+    auto& logger1 = Ex11::Logger::getInstance();
+    auto& logger2 = Ex11::Logger::getInstance();
+
+    // Same instance
+    EXPECT_EQ(&logger1, &logger2);
+
+    logger1.log("Test message");
+}
+
+TEST(Ex11_DesignPatterns, Factory) {
+    auto dog = Ex11::AnimalFactory::createAnimal("dog");
+    auto cat = Ex11::AnimalFactory::createAnimal("cat");
+
+    EXPECT_NE(dog, nullptr);
+    EXPECT_NE(cat, nullptr);
+
+    dog->speak();  // "Woof!"
+    cat->speak();  // "Meow!"
+}
+
+TEST(Ex11_DesignPatterns, Builder) {
+    auto pizza = Ex11::PizzaBuilder()
+        .setSize("large")
+        .addTopping("pepperoni")
+        .addTopping("mushrooms")
+        .setCrust("thin")
+        .build();
+
+    EXPECT_NE(pizza, nullptr);
+}
+
+TEST(Ex11_DesignPatterns, Observer) {
+    auto subject = std::make_shared<Ex11::Subject>();
+    auto obs1 = std::make_shared<Ex11::ConcreteObserver>();
+
+    subject->attach(obs1);
+    subject->setState(42);
+    // obs1 should be notified
+}
+
+TEST(Ex11_DesignPatterns, Strategy) {
+    Ex11::Context ctx;
+    ctx.setStrategy([](int a, int b) { return a + b; });
+    EXPECT_EQ(ctx.executeStrategy(5, 3), 8);
+
+    ctx.setStrategy([](int a, int b) { return a * b; });
+    EXPECT_EQ(ctx.executeStrategy(5, 3), 15);
+}
+
+TEST(Ex11_DesignPatterns, Command) {
+    Ex11::CommandInvoker invoker;
+    invoker.executeCommand(std::make_unique<Ex11::AddCommand>(5));
+    // Can undo/redo
+    invoker.undo();
+}
+
+TEST(Ex11_DesignPatterns, State) {
+    Ex11::TCPConnection conn;
+    conn.open();     // transitions to Listen
+    conn.connect();  // transitions to Established
+    conn.close();    // transitions to Closed
+}
+*/
+
+// ============================================================================
+// EXERCISE 12: Type Techniques Tests
+// ============================================================================
+
+/*
+TEST(Ex12_TypeTechniques, SimpleAny) {
+    Ex12::SimpleAny a = 42;
+    EXPECT_TRUE(a.has_value());
+    EXPECT_EQ(a.get<int>(), 42);
+
+    EXPECT_THROW(a.get<std::string>(), std::bad_cast);
+}
+
+TEST(Ex12_TypeTechniques, FunctionWrapper) {
+    Ex12::Function<int(int, int)> f = [](int a, int b) { return a + b; };
+    EXPECT_EQ(f(3, 4), 7);
+}
+
+TEST(Ex12_TypeTechniques, StrongTypes) {
+    Ex12::Meters distance{100};
+    Ex12::Seconds time{10};
+
+    EXPECT_EQ(distance.get(), 100);
+    EXPECT_EQ(time.get(), 10);
+
+    // distance / time;  // should not compile
+}
+
+TEST(Ex12_TypeTechniques, ResultType) {
+    Ex12::Result<int, std::string> r1 = Ex12::ok(42);
+    EXPECT_TRUE(r1.isOk());
+    EXPECT_EQ(r1.unwrap(), 42);
+
+    Ex12::Result<int, std::string> r2 = Ex12::err(std::string("error"));
+    EXPECT_TRUE(r2.isErr());
+}
+
+TEST(Ex12_TypeTechniques, OptionalChaining) {
+    auto result = Ex12::divide(10, 2)
+        .and_then([](double x) { return Ex12::sqrt(x); })
+        .transform([](double x) { return x * 2; })
+        .value_or(0.0);
+
+    EXPECT_NEAR(result, 4.472, 0.001);
+}
+
+TEST(Ex12_TypeTechniques, TypeList) {
+    using List = Ex12::TypeList<int, double, char>;
+    EXPECT_EQ(Ex12::Length<List>::value, 3);
+
+    using First = Ex12::Front<List>;
+    EXPECT_TRUE((std::is_same_v<First, int>));
+}
+
+TEST(Ex12_TypeTechniques, TagDispatching) {
+    std::vector<int> vec{3, 1, 4, 1, 5};
+    Ex12::sort(vec, Ex12::FastTag{});
+    // vec should be sorted
+    EXPECT_TRUE(std::is_sorted(vec.begin(), vec.end()));
 }
 */
 

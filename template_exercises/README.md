@@ -1,16 +1,25 @@
-# C++ Template Mastery Exercises
+# C++ Template Mastery & Design Patterns
 
-A progressive series of exercises designed to master C++ templates, from basic function templates to advanced metaprogramming techniques.
+A comprehensive series of exercises designed to master C++ templates, idioms, design patterns, and advanced metaprogramming techniques.
 
 ## 📚 Overview
 
 This exercise set covers:
+
+**Template Techniques:**
 - ✅ Basic function and class templates
 - ✅ Template specialization
 - ✅ Variadic templates
 - ✅ SFINAE techniques
 - ✅ C++20 Concepts
 - ✅ Advanced patterns (CRTP, Expression Templates, etc.)
+
+**C++ Patterns & Idioms:**
+- ✅ X Macros (preprocessor metaprogramming)
+- ✅ PIMPL (Pointer to Implementation)
+- ✅ RAII, Rule of Three/Five, Copy-and-Swap
+- ✅ Design Patterns (Gang of Four with modern C++)
+- ✅ Type Erasure, Strong Types, Phantom Types
 
 ## 🎯 Learning Path
 
@@ -157,6 +166,149 @@ Master advanced template metaprogramming:
 - Expression templates for lazy evaluation
 
 **Exercises:** 12 advanced techniques
+
+---
+
+### Exercise 08: X Macros Pattern
+**File:** `08_x_macros.hpp`
+
+Master the X Macros preprocessor pattern for code generation:
+- Generate enums with string conversion
+- Create dispatch tables
+- Build state machines
+- Handle multi-argument macros
+- Combine with modern C++ features
+
+**Real-World Applications:**
+- Error code systems with automatic stringification
+- Command pattern with switch generation
+- Configuration parameter management
+- Bit flag systems
+- Test case generation
+
+**Learn to Build:**
+- `Color` enum with automatic `colorToString()`
+- Error code system with messages
+- Function dispatch tables
+- Reflection-like systems
+- State machine validators
+
+**Exercises:** 12 X Macro patterns
+
+---
+
+### Exercise 09: PIMPL Idiom
+**File:** `09_pimpl.hpp`
+
+Implement Pointer to Implementation for compilation firewalls:
+- Reduce compilation dependencies
+- Hide implementation details
+- Maintain ABI stability
+- Use unique_ptr and shared_ptr appropriately
+- Handle copyability correctly
+
+**PIMPL Variations:**
+- Basic PIMPL with `unique_ptr`
+- Copyable PIMPL (deep copy)
+- Shared PIMPL with copy-on-write
+- Thread-safe PIMPL
+- Platform abstraction layer
+
+**Benefits:**
+- Faster compilation for clients
+- Binary compatibility
+- True information hiding
+- Flexibility to change implementation
+
+**Exercises:** 13 PIMPL implementations
+
+---
+
+### Exercise 10: Essential C++ Idioms
+**File:** `10_cpp_idioms.hpp`
+
+Master fundamental C++ idioms and best practices:
+- RAII (Resource Acquisition Is Initialization)
+- Rule of Zero/Three/Five
+- Copy-and-Swap
+- Named Parameter Idiom
+- NVI (Non-Virtual Interface)
+- Strong Types
+- Scope Guard
+
+**Critical Concepts:**
+- When to define special member functions
+- Exception-safe assignment
+- Fluent interfaces
+- Preventing type confusion
+- Automatic cleanup patterns
+- Encapsulation techniques
+
+**Build Your Skills:**
+- `FileHandle` - RAII wrapper
+- `Buffer` - Rule of Five
+- `String` - Copy-and-Swap
+- `StrongType<T, Tag>` - type safety
+- `ScopeGuard` - cleanup automation
+
+**Exercises:** 15 essential idioms
+
+---
+
+### Exercise 11: Design Patterns in Modern C++
+**File:** `11_design_patterns.hpp`
+
+Classic Gang of Four patterns with modern C++ features:
+- Smart pointers (unique_ptr, shared_ptr, weak_ptr)
+- Lambda functions and std::function
+- Move semantics
+- Type erasure
+- Template-based patterns
+
+**Patterns Covered:**
+- **Creational:** Singleton, Factory, Abstract Factory, Builder, Prototype
+- **Behavioral:** Observer, Strategy, Command, Visitor, Template Method, State, Chain of Responsibility
+- **Structural:** Decorator, Adapter
+- **Modern:** Type Erasure, Monostate
+
+**Modern Approaches:**
+- Thread-safe Singleton with magic statics
+- Factory returning `unique_ptr`
+- Observer with `weak_ptr` to avoid cycles
+- Strategy with `std::function`
+- Type erasure like `std::any`
+
+**Exercises:** 16 design patterns
+
+---
+
+### Exercise 12: Advanced Type Techniques
+**File:** `12_type_techniques.hpp`
+
+Advanced type-level programming and compile-time techniques:
+- Type erasure from scratch
+- Strong type wrappers
+- Phantom types for state tracking
+- std::variant and std::optional patterns
+- Type list metaprogramming
+- Policy-based design
+
+**Advanced Topics:**
+- Implementing `std::any` and `std::function`
+- Type-safe units (Meters, Seconds)
+- Compile-time state machines
+- Result<T, E> type
+- Visitor patterns for variants
+- Empty Base Optimization
+
+**Type-Level Programming:**
+- `TypeList<Ts...>` manipulation
+- Trait classes
+- Tag dispatching
+- Opaque typedefs
+- Recursive variants
+
+**Exercises:** 17 type techniques
 
 ---
 
@@ -333,15 +485,23 @@ size_t Counter<T>::s_count = 0;
 
 Track your progress through the exercises:
 
+**Template Techniques (Exercises 01-07):**
 - [ ] Exercise 01: Function Templates (8/8)
 - [ ] Exercise 02: Class Templates (8/8)
 - [ ] Exercise 03: Specialization (8/8)
 - [ ] Exercise 04: Variadic Templates (12/12)
 - [ ] Exercise 05: SFINAE (10/10)
 - [ ] Exercise 06: Concepts (12/12) ⚠️ Requires C++20
-- [ ] Exercise 07: Advanced (12/12)
+- [ ] Exercise 07: Advanced Templates (12/12)
 
-**Total:** 70 exercises
+**C++ Patterns & Idioms (Exercises 08-12):**
+- [ ] Exercise 08: X Macros Pattern (12/12)
+- [ ] Exercise 09: PIMPL Idiom (13/13)
+- [ ] Exercise 10: Essential C++ Idioms (15/15)
+- [ ] Exercise 11: Design Patterns (16/16)
+- [ ] Exercise 12: Advanced Type Techniques (17/17)
+
+**Total:** 143 exercises across 12 modules
 
 ---
 
@@ -394,28 +554,46 @@ These exercises complement your existing projects:
 
 ## 📚 References
 
+**Templates & Metaprogramming:**
 - [cppreference.com - Templates](https://en.cppreference.com/w/cpp/language/templates)
 - [C++ Templates: The Complete Guide](https://www.josuttis.com/tmplbook/)
 - [C++20 Concepts](https://en.cppreference.com/w/cpp/language/constraints)
 - [SFINAE and enable_if](https://en.cppreference.com/w/cpp/types/enable_if)
 - [Template Metaprogramming](https://en.wikibooks.org/wiki/C%2B%2B_Programming/Templates/Template_Meta-Programming)
 
+**Design Patterns:**
+- [Design Patterns: Elements of Reusable Object-Oriented Software](https://en.wikipedia.org/wiki/Design_Patterns) (Gang of Four)
+- [Modern C++ Design](https://erdani.com/index.php/books/modern-c-design/) by Andrei Alexandrescu
+- [C++ Patterns](https://cpppatterns.com/)
+
+**Idioms:**
+- [More C++ Idioms](https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms)
+- [X Macros](https://en.wikipedia.org/wiki/X_Macro)
+- [PIMPL Idiom](https://cpppatterns.com/patterns/pimpl.html)
+
 ---
 
 ## 🎉 Completion
 
 Once you've completed all exercises, you'll have mastered:
-- Writing generic, reusable code
+- Writing generic, reusable code with templates
 - Compile-time computation and optimization
-- Advanced C++ template techniques
+- Advanced C++ template techniques (SFINAE, concepts, metaprogramming)
 - Modern C++17/20 features
-- Template design patterns
+- Essential C++ idioms (RAII, Rule of Five, Copy-and-Swap)
+- Classic design patterns with modern C++ (smart pointers, lambdas)
+- Advanced type techniques (type erasure, strong types, phantom types)
+- PIMPL idiom for compilation firewalls
+- X Macros for code generation
 
 **Next Steps:**
 - Apply these techniques to real projects
-- Explore template libraries (Boost, Eigen)
-- Contribute to open-source template-heavy projects
-- Teach others what you've learned!
+- Refactor existing code using learned patterns
+- Explore template libraries (Boost, Eigen, Ranges-v3)
+- Contribute to open-source C++ projects
+- Share knowledge and mentor others
+- Read advanced C++ books (Meyers, Sutter, Alexandrescu)
+- Attend C++ conferences (CppCon, Meeting C++, C++Now)
 
 ---
 
