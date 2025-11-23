@@ -312,6 +312,130 @@ Advanced type-level programming and compile-time techniques:
 
 ---
 
+### Exercise 13: Advanced STL & Ranges (C++20)
+**File:** `13_stl_ranges.hpp`
+
+Master STL algorithms and modern C++20 ranges:
+- Custom iterator implementation
+- Range-based algorithms
+- Lazy evaluation with views
+- std::span for array views
+- Composable range operations
+- Iterator categories and traits
+
+**Build Your Skills:**
+- `RangeIterator` - generate number sequences
+- `FibonacciIterator` - lazy Fibonacci generation
+- `FilterIterator` - conditional iteration
+- `ZipIterator` - iterate multiple ranges together
+- Pipeline composition with views
+
+**Advanced Topics:**
+- Custom range adapters
+- Sliding window views
+- Set operations with ranges
+- Multi-key sorting
+- Generator patterns
+
+**Note:** Requires C++20 for ranges support
+
+**Exercises:** 15 range and algorithm patterns
+
+---
+
+### Exercise 14: Functional Programming in C++
+**File:** `14_functional_programming.hpp`
+
+Apply functional programming paradigms in C++:
+- Higher-order functions (map, filter, reduce)
+- Function composition and currying
+- Monads: Optional, Result, State
+- Lazy evaluation
+- Lambda expressions and closures
+- Pure functions and immutability
+
+**Functional Patterns:**
+- `map`, `filter`, `reduce` - collection transformations
+- `compose` - function composition
+- `curry` - partial application
+- `Result<T, E>` - railway-oriented programming
+- `Lazy<T>` - deferred computation
+- `memoize` - automatic caching
+
+**Advanced Techniques:**
+- Monadic operations (flatMap/bind)
+- Applicative functors
+- Y combinator for recursion
+- Transducers for efficient composition
+- Pipeline operators
+- Zipper data structures
+
+**Exercises:** 18 functional patterns
+
+---
+
+### Exercise 15: Cache-Friendly & Performance Patterns
+**File:** `15_performance_patterns.hpp`
+
+Optimize code for modern CPU architectures:
+- CPU cache hierarchy understanding
+- Data-oriented design (DoD)
+- Memory layout optimization
+- False sharing prevention
+- Branch prediction hints
+- SIMD concepts
+
+**Performance Techniques:**
+- AoS vs SoA (Array of Structures vs Structure of Arrays)
+- Cache line awareness and padding
+- Memory pool allocators
+- Stack/linear allocators
+- Hot/cold data separation
+- Object pool pattern
+
+**Advanced Optimizations:**
+- Small string optimization (SSO)
+- Copy-on-write (CoW)
+- Bit packing for compact data
+- Custom STL allocators
+- Compile-time computation
+- Memory bandwidth testing
+
+**Exercises:** 18 performance patterns
+
+---
+
+### Exercise 16: Modern Move Semantics Deep Dive
+**File:** `16_move_semantics.hpp`
+
+Master C++11/14/17 move semantics and perfect forwarding:
+- Rvalue references and std::move
+- Move constructors and move assignment
+- Perfect forwarding with std::forward
+- Universal references (forwarding references)
+- Copy elision and RVO
+- noexcept and move operations
+
+**Essential Skills:**
+- Rule of Five implementation
+- Move-only types (unique resources)
+- std::move vs std::forward
+- Ref-qualifiers (& and &&)
+- Conditional noexcept
+- Exception safety with moves
+
+**Advanced Topics:**
+- Reference collapsing rules
+- Return value optimization (RVO, NRVO)
+- Guaranteed copy elision (C++17)
+- Moving from *this
+- Moved-from state detection
+- Move semantics with inheritance
+
+**Exercises:** 18 move semantics patterns
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -501,7 +625,13 @@ Track your progress through the exercises:
 - [ ] Exercise 11: Design Patterns (16/16)
 - [ ] Exercise 12: Advanced Type Techniques (17/17)
 
-**Total:** 143 exercises across 12 modules
+**Modern C++ Features (Exercises 13-16):**
+- [ ] Exercise 13: Advanced STL & Ranges (15/15) ⚠️ Requires C++20
+- [ ] Exercise 14: Functional Programming (18/18)
+- [ ] Exercise 15: Cache-Friendly & Performance Patterns (18/18)
+- [ ] Exercise 16: Modern Move Semantics Deep Dive (18/18)
+
+**Total:** 212 exercises across 16 modules
 
 ---
 
@@ -579,12 +709,18 @@ Once you've completed all exercises, you'll have mastered:
 - Writing generic, reusable code with templates
 - Compile-time computation and optimization
 - Advanced C++ template techniques (SFINAE, concepts, metaprogramming)
-- Modern C++17/20 features
+- Modern C++17/20 features (ranges, views, concepts)
 - Essential C++ idioms (RAII, Rule of Five, Copy-and-Swap)
 - Classic design patterns with modern C++ (smart pointers, lambdas)
 - Advanced type techniques (type erasure, strong types, phantom types)
 - PIMPL idiom for compilation firewalls
 - X Macros for code generation
+- STL algorithms and custom iterator implementation
+- C++20 ranges and lazy evaluation with views
+- Functional programming patterns (map, filter, reduce, monads)
+- Cache-friendly code and data-oriented design
+- Performance optimization techniques
+- Move semantics and perfect forwarding mastery
 
 **Next Steps:**
 - Apply these techniques to real projects
